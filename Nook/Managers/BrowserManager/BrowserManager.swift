@@ -730,8 +730,8 @@ class BrowserManager: ObservableObject {
 
     // MARK: - Extension Library Panel
 
-    /// Toggles the extension library for the active window via keyboard shortcut. The overlay in
-    /// WindowView watches this flag; there is no panel to drive.
+    /// Toggles site controls in the active window. The visible source button presents
+    /// the native popover in either address-bar layout.
     func toggleExtensionLibrary() {
         guard let windowState = windowRegistry?.activeWindow else { return }
         windowState.isExtensionLibraryVisible.toggle()

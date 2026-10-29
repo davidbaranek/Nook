@@ -106,7 +106,7 @@ struct FavoritePreviewAnchorKey: PreferenceKey {
     }
 }
 
-/// Drawn in the window, like `ExtensionLibraryOverlay`.
+/// Drawn inside the browser window.
 struct FavoritePreviewOverlay: View {
     let anchor: Anchor<CGRect>?
 

@@ -25,25 +25,24 @@ public struct NookIconButtonStyle: PrimitiveButtonStyle {
     public func makeBody(configuration: Configuration) -> some View {
         #if os(macOS)
         if #available(macOS 26.0, *), !onGlass {
-            button(configuration)
-                .buttonStyle(.glass)
-                .controlSize(.small)
-                .buttonBorderShape(.circle)
-                .frame(width: size, height: size)
+            // The system owns the glass button's font, padding and intrinsic size.
+            GlassButtonStyle().makeBody(configuration: configuration)
         } else {
-            button(configuration).buttonStyle(.borderless).frame(width: size, height: size)
+            inlineButton(configuration).buttonStyle(.borderless)
         }
         #else
-        button(configuration).buttonStyle(.borderless).frame(width: size, height: size)
+        inlineButton(configuration).buttonStyle(.borderless)
         #endif
     }
 
-    private func button(_ configuration: Configuration) -> some View {
+    private func inlineButton(_ configuration: Configuration) -> some View {
         Button(role: configuration.role, action: configuration.trigger) {
             configuration.label
+                .frame(width: size, height: size)
                 .contentShape(Rectangle())
         }
     }
+
 }
 
 public extension View {

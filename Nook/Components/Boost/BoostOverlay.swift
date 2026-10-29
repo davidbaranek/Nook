@@ -12,7 +12,7 @@ import NookUI
 import NookWeb
 
 /// The Boost panel, drawn in the window over the page's top-right corner. Only the panel takes
-/// clicks, so the page stays usable for Zap. In-window like `ExtensionLibraryOverlay`.
+/// clicks, so the page stays usable for Zap. Presented inside the browser window.
 struct BoostOverlay: View {
     @EnvironmentObject var browserManager: BrowserManager
     @Environment(BrowserWindowState.self) private var windowState

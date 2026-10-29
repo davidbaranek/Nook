@@ -37,8 +37,6 @@ struct TopBarView: View {
         }
         .frame(height: NookDesign.Toolbar.height)
         .background(.bar)
-        // The bar already provides the material; its native controls need no extra glass bezel.
-        .environment(\.nookHasGlassSurface, true)
         .overlay(alignment: .bottom) {
             Rectangle().fill(.separator)
                 .frame(height: NookDesign.Size.hairlineWidth)
@@ -69,7 +67,6 @@ struct TopBarView: View {
         }
         .controlGroupStyle(.navigation)
         .labelStyle(.iconOnly)
-        .controlSize(.small)
     }
 
     private var addressBar: some View {

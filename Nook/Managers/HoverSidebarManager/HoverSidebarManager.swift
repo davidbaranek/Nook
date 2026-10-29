@@ -99,6 +99,10 @@ final class HoverSidebarManager: ObservableObject {
             return
         }
 
+        // A native popover has its own window and may extend beyond the hover zone.
+        // Keep its source alive until the system dismisses the presentation.
+        if isOverlayVisible, activeState.isExtensionLibraryVisible { return }
+
         guard let window = NSApp.keyWindow else {
             if isOverlayVisible {
                 isOverlayVisible = false

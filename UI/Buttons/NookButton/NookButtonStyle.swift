@@ -8,33 +8,23 @@ struct NookButtonStyle: PrimitiveButtonStyle {
     @Environment(\.nookHasGlassSurface) private var onGlass
 
     let variant: Variant
-    let shadowStyle: ShadowStyle
-    let role: ButtonRole?
-
-    // Retain the existing call-site API while letting the system own shape and elevation.
     enum Variant { case secondary, primary }
+    // Existing dialog descriptors share this type; native buttons own their elevation.
     enum ShadowStyle { case none, subtle, prominent }
 
     @ViewBuilder
     func makeBody(configuration: Configuration) -> some View {
         if #available(macOS 26.0, *), !onGlass {
             if variant == .primary {
-                button(configuration).buttonStyle(.glassProminent)
+                GlassProminentButtonStyle().makeBody(configuration: configuration)
             } else {
-                button(configuration).buttonStyle(.glass)
+                GlassButtonStyle().makeBody(configuration: configuration)
             }
         } else if variant == .primary {
-            button(configuration).buttonStyle(.borderedProminent)
+            BorderedProminentButtonStyle().makeBody(configuration: configuration)
         } else {
-            button(configuration).buttonStyle(.bordered)
+            BorderedButtonStyle().makeBody(configuration: configuration)
         }
-    }
-
-    private func button(_ configuration: Configuration) -> some View {
-        Button(role: role ?? configuration.role, action: configuration.trigger) {
-            configuration.label
-        }
-        .controlSize(.large)
     }
 }
 
@@ -56,21 +46,8 @@ struct ScaleButtonStyle: ButtonStyle {
 // MARK: - Convenience Extensions
 
 extension PrimitiveButtonStyle where Self == NookButtonStyle {
-    static var nookButton: NookButtonStyle {
-        NookButtonStyle(variant: .secondary, shadowStyle: .subtle, role: nil)
-    }
-
-    static func nookButton(role: ButtonRole?) -> NookButtonStyle {
-        NookButtonStyle(variant: .secondary, shadowStyle: .subtle, role: role)
-    }
-
-    static var nookButtonProminent: NookButtonStyle {
-        NookButtonStyle(variant: .primary, shadowStyle: .prominent, role: nil)
-    }
-
-    static func nookButtonProminent(role: ButtonRole?) -> NookButtonStyle {
-        NookButtonStyle(variant: .primary, shadowStyle: .prominent, role: role)
-    }
+    static var nookButton: NookButtonStyle { NookButtonStyle(variant: .secondary) }
+    static var nookButtonProminent: NookButtonStyle { NookButtonStyle(variant: .primary) }
 }
 
 #Preview {
@@ -132,13 +109,13 @@ private struct ButtonPreviewSection: View {
             }
             .buttonStyle(.nookButton)
 
-            Button("Delete", systemImage: "trash") {
+            Button("Delete", systemImage: "trash", role: .destructive) {
             }
-            .buttonStyle(.nookButton(role: .destructive))
+            .buttonStyle(.nookButton)
 
-            Button("Erase Everything", systemImage: "flame") {
+            Button("Erase Everything", systemImage: "flame", role: .destructive) {
             }
-            .buttonStyle(.nookButtonProminent(role: .destructive))
+            .buttonStyle(.nookButtonProminent)
 
             Button("Disabled") {
             }

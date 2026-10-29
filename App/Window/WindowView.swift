@@ -71,11 +71,6 @@ struct WindowView: View {
             DownloadFlightOverlay(target: anchor)
                 .zIndex(8000)
         }
-        // In-window, not a panel; see ExtensionLibraryOverlay.
-        .overlayPreferenceValue(ExtensionLibraryAnchorKey.self) { anchor in
-            ExtensionLibraryOverlay(anchor: anchor)
-                .zIndex(9000)
-        }
         .overlay { BoostOverlay().zIndex(9500) }
         // Control-Tab's card of recent tabs.
         .overlay {

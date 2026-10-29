@@ -13,17 +13,54 @@ struct ExtensionLibraryButton: View {
     @EnvironmentObject var browserManager: BrowserManager
     @Environment(BrowserWindowState.self) private var windowState
 
+    @State private var showsMore = false
+
+    private var presented: Binding<Bool> {
+        Binding {
+            windowState.isExtensionLibraryVisible
+        } set: { visible in
+            windowState.isExtensionLibraryVisible = visible
+            if !visible { showsMore = false }
+        }
+    }
+
     var body: some View {
-        // Arc's site controls button; the panel springs out of it.
-        Button("Site Controls", systemImage: "slider.horizontal.3") {
-            withAnimation(.interpolatingSpring(Spring(response: 0.3, dampingRatio: 0.86))) {
-                windowState.isExtensionLibraryVisible.toggle()
+        Button("Site Controls", systemImage: "slider.horizontal.3") { presented.wrappedValue.toggle() }
+        .buttonStyle(NookIconButtonStyle())
+        .labelStyle(.iconOnly)
+        .popover(isPresented: presented, attachmentAnchor: .rect(.bounds), arrowEdge: .bottom) {
+            if let settings = browserManager.nookSettings {
+                Group {
+                    if showsMore {
+                        VStack(alignment: .leading, spacing: NookDesign.Spacing.md) {
+                            Button("Back", systemImage: "chevron.backward") { showsMore = false }
+                                .buttonStyle(.borderless)
+                                .padding(.horizontal, NookDesign.Spacing.lg)
+                            MoreMenuView(browserManager: browserManager, windowState: windowState,
+                                         onDismiss: { showsMore = false })
+                        }
+                        .padding(.vertical, NookDesign.Spacing.lg)
+                        .frame(width: 300)
+                    } else {
+                        ExtensionLibraryView(browserManager: browserManager, windowState: windowState,
+                            settings: settings,
+                            onDismiss: { presented.wrappedValue = false },
+                            onShowMoreMenu: { showsMore = true })
+                    }
+                }
+                // As with the theme picker, macOS supplies the entire presentation:
+                // background, arrow, rim, shadow, placement and transient dismissal.
+                .environment(\.nookHasGlassSurface, true)
+                .onExitCommand { presented.wrappedValue = false }
             }
         }
-        .labelStyle(.iconOnly)
-        .buttonStyle(NookIconButtonStyle(size: NookDesign.Size.iconButton, radius: NookDesign.Radius.sm))
-        .foregroundStyle(Color.primary)
-        // The overlay in WindowView hangs off this frame.
-        .anchorPreference(key: ExtensionLibraryAnchorKey.self, value: .bounds) { $0 }
+        .onChange(of: windowState.selectedItemID) { _, _ in presented.wrappedValue = false }
+        .onChange(of: windowState.commandPalette?.isVisible) { _, visible in
+            if visible == true { presented.wrappedValue = false }
+        }
+        .onChange(of: windowState.isExtensionLibraryVisible) { _, visible in
+            if !visible { showsMore = false }
+        }
+        .onDisappear { presented.wrappedValue = false }
     }
 }
