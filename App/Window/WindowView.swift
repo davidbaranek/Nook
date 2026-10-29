@@ -296,6 +296,12 @@ struct WindowView: View {
                     }
                     .padding(.leading, !bordered || (sidebarPresented && !onRight) || (windowState.isSidebarAIChatVisible && onRight) ? 0 : NookDesign.Chrome.pageInset)
                     .padding(.trailing, !bordered || (sidebarPresented && onRight) || (windowState.isSidebarAIChatVisible && !onRight) ? 0 : NookDesign.Chrome.pageInset)
+                    .background {
+                        if bordered {
+                            Rectangle().fill(.clear)
+                                .glassEffect(.regular, in: Rectangle())
+                        }
+                    }
                     .overlay {
                         if shown > 0 {
                             Color.clear.contentShape(Rectangle())
@@ -437,6 +443,9 @@ struct WindowView: View {
                                     .allowsHitTesting(false)
                             }
                         }
+                        .clipShape(UnevenRoundedRectangle(
+                            topLeadingRadius: bordered ? cornerRadius : 0,
+                            topTrailingRadius: bordered ? cornerRadius : 0))
                         .zIndex(2500)
                 }
 
@@ -484,6 +493,7 @@ struct WindowView: View {
                     .allowsHitTesting(false)
             }
         }
+        .padding(.top, bordered && hasTopBar ? NookDesign.Chrome.pageInset : 0)
         .padding(.bottom, bordered ? NookDesign.Chrome.pageInset : 0)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
