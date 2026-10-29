@@ -40,12 +40,16 @@ struct WindowView: View {
                     .disabled(windowState.spaceID.flatMap { tabs.space($0) } == nil)
                 }
 
-            // The library sits on the window background; the browser slides off it, as in Arc.
-            // In its own view, so a swipe re-renders the push and not this whole window.
-            // The window buttons sit in the sidebar's header, so they come and go with it, and
-            // with the library while it is out (the container knows how far that is).
-            LibraryPushContainer(lightsVisible: windowState.isSidebarVisible || hoverSidebarManager.isOverlayVisible) {
-                SidebarWebViewStack()
+            // Keep Nook's sidebar and library content; AppKit owns their shared pane on macOS 26+.
+            // Older systems retain the original library push layout.
+            Group {
+                if #available(macOS 26.0, *) {
+                    NativeBrowserLayout()
+                } else {
+                    LibraryPushContainer(lightsVisible: windowState.isSidebarVisible || hoverSidebarManager.isOverlayVisible) {
+                        SidebarWebViewStack()
+                    }
+                }
             }
             .environmentObject(browserManager)
             .environment(windowState)
@@ -238,6 +242,76 @@ struct WindowView: View {
 
     // MARK: - Layout Components
 
+    @available(macOS 26.0, *)
+    private func NativeBrowserLayout() -> some View {
+        GeometryReader { geometry in
+            let libraryWidth = LibraryMotion.width(for: windowState.sidebarMenuSelectedTab, windowWidth: geometry.size.width)
+            let shown = LibraryMotion.shown(windowState, width: libraryWidth)
+            let progress = libraryWidth > 0 ? min(shown / libraryWidth, 1) : 0
+            let sidebarWidth = windowState.isSidebarVisible ? windowState.sidebarWidth : 0
+            let width = sidebarWidth + max(shown - sidebarWidth * progress, 0)
+            let onRight = nookSettings.sidebarPosition == .right
+            let sidebarPresented = windowState.isSidebarVisible || shown > 0
+            let bordered = !nookSettings.hideWebContentBorder
+
+            ZStack {
+                TrafficLights(visible: windowState.isSidebarVisible || hoverSidebarManager.isOverlayVisible || shown > 0)
+                    .frame(width: 0, height: 0)
+                NativeSidebarSplitView(
+                    width: width,
+                    isVisible: sidebarPresented,
+                    onRight: onRight,
+                    maximumWidth: shown > 0 ? max(SidebarWidth.max, libraryWidth) : SidebarWidth.max,
+                    onResize: { width in
+                        guard shown == 0, windowState.isSidebarVisible else { return }
+                        browserManager.updateSidebarWidth(min(width, SidebarWidth.max), for: windowState)
+                        browserManager.saveSidebarWidthToDefaults()
+                    },
+                    onCollapse: {
+                        if windowState.isSidebarMenuVisible { LibraryMotion.close(windowState) }
+                        if windowState.isSidebarVisible { browserManager.toggleSidebar(for: windowState) }
+                    }
+                ) {
+                    ZStack(alignment: onRight ? .topTrailing : .topLeading) {
+                        if windowState.isSidebarVisible {
+                            SidebarContents()
+                                .modifier(LibraryFade())
+                        }
+                        if shown > 0 {
+                            SidebarMenu()
+                                .frame(width: libraryWidth)
+                                .padding(.top, NookDesign.Spacing.sidebarTop)
+                                .opacity(min(1, progress * 2))
+                        }
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .environment(\.libraryProgress, progress)
+                    .environment(\.nookHasGlassSurface, true)
+                    .spaceThemeAppearance(spaceTheme)
+                } content: {
+                    HStack(spacing: 0) {
+                        if onRight && windowState.isSidebarAIChatVisible { AISidebar() }
+                        WebContent()
+                        if !onRight && windowState.isSidebarAIChatVisible { AISidebar() }
+                    }
+                    .padding(.leading, !bordered || (sidebarPresented && !onRight) || (windowState.isSidebarAIChatVisible && onRight) ? 0 : NookDesign.Chrome.pageInset)
+                    .padding(.trailing, !bordered || (sidebarPresented && onRight) || (windowState.isSidebarAIChatVisible && !onRight) ? 0 : NookDesign.Chrome.pageInset)
+                    .overlay {
+                        if shown > 0 {
+                            Color.clear.contentShape(Rectangle())
+                                .onTapGesture { LibraryMotion.close(windowState) }
+                        }
+                    }
+                }
+                if windowState.isSidebarMenuVisible {
+                    LibrarySwipeSurface(width: libraryWidth, onRight: onRight,
+                                        onChange: { windowState.libraryDrag = max($0, 0) },
+                                        onEnd: { LibraryMotion.release(windowState, distance: $0, velocity: $1, width: libraryWidth) })
+                }
+            }
+        }
+    }
+
     @ViewBuilder
     private func WindowBackground() -> some View {
         // Private windows keep the neutral incognito accent, never the space's color.
@@ -301,9 +375,7 @@ struct WindowView: View {
     @ViewBuilder
     private func SpacesSidebar() -> some View {
         if windowState.isSidebarVisible {
-            SpacesSideBarView()
-                .environment(\.nookBaseColorScheme, systemColorScheme)
-                .spaceThemeAppearance(spaceTheme)
+            SidebarContents()
                 .nookSidebarSurface()
                 // Becomes its column in the library as the library comes out, as in Arc.
                 .modifier(LibraryFade())
@@ -329,6 +401,16 @@ struct WindowView: View {
                 .environment(commandPalette)
                 .environmentObject(browserManager.gradientColorManager)
         }
+    }
+
+    private func SidebarContents() -> some View {
+        SpacesSideBarView()
+            .environment(\.nookBaseColorScheme, systemColorScheme)
+            .spaceThemeAppearance(spaceTheme)
+            .environmentObject(browserManager)
+            .environment(windowState)
+            .environment(commandPalette)
+            .environmentObject(browserManager.gradientColorManager)
     }
 
     @ViewBuilder
