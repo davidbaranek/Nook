@@ -86,7 +86,7 @@ public struct SpaceTab: View {
                                 .offset(x: NookDesign.Spacing.xs, y: NookDesign.Spacing.xs)
                         }
                     }
-                    .opacity(isUnloaded ? NookDesign.Surface.unloadedOpacity : 1)
+                    .opacity(isUnloaded && !isCurrentTab ? NookDesign.Surface.unloadedOpacity : 1)
                 if let session, session.hasAudioContent || session.hasPlayingAudio || session.isAudioMuted {
                     Button(action: { session.toggleMute() }) {
                         Image(systemName: session.isAudioMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
@@ -101,8 +101,8 @@ public struct SpaceTab: View {
                 if isRenaming {
                     TextField("", text: $draftName)
                         .font(NookDesign.Tab.font)
-                        .foregroundStyle(.primary)
-                        .opacity(isUnloaded ? NookDesign.Surface.unloadedOpacity : 1)
+                        .nookTabForeground()
+                        .opacity(isUnloaded && !isCurrentTab ? NookDesign.Surface.unloadedOpacity : 1)
                         .textFieldStyle(.plain)
                         .onSubmit { commitRename() }
                         .onEscapeKey { renameState.itemID = nil }
@@ -122,7 +122,7 @@ public struct SpaceTab: View {
                         .overlay(alignment: .leading) {
                             label(title)
                                 .font(NookDesign.Tab.font)
-                                .foregroundStyle(.primary)
+                                .nookTabForeground()
                                 .lineLimit(1)
                                 .fixedSize(horizontal: true, vertical: false)
                                 .id(title)
@@ -133,7 +133,7 @@ public struct SpaceTab: View {
                         // On hover the text ends before the close button.
                         .nookTrailingFade(reserving: isHovering ? NookDesign.Size.row + (showsReset ? NookDesign.Size.rowButton : 0) : 0)
                         .textSelection(.disabled)
-                        .opacity(isUnloaded ? NookDesign.Surface.unloadedOpacity : 1)
+                        .opacity(isUnloaded && !isCurrentTab ? NookDesign.Surface.unloadedOpacity : 1)
                 }
             }
             .overlay(alignment: .trailing) {
@@ -144,7 +144,7 @@ public struct SpaceTab: View {
                             Button { tabs.resetToHome(item.id) } label: {
                                 Image(systemName: "arrow.uturn.backward")
                                     .font(NookDesign.Font.secondary)
-                                    .foregroundStyle(.primary)
+                                    .nookTabForeground()
                                     .frame(width: NookDesign.Size.rowButton, height: NookDesign.Size.rowButton)
                                     .background(isResetHovering ? NookDesign.Surface.fillPressed : Color.clear)
                                     .clipShape(NookDesign.Radius.shape(NookDesign.Radius.sm))
@@ -163,7 +163,7 @@ public struct SpaceTab: View {
                         }) {
                             Image(systemName: useUnload ? "minus" : "xmark")
                                 .font(NookDesign.Font.secondary)
-                                .foregroundColor(.primary)
+                                .nookTabForeground()
                                 .frame(width: NookDesign.Size.rowButton, height: NookDesign.Size.rowButton)
                                 .background(isCloseHovering ? NookDesign.Surface.fillPressed : Color.clear)
                                 .clipShape(NookDesign.Radius.shape(NookDesign.Radius.sm))
@@ -186,6 +186,7 @@ public struct SpaceTab: View {
                 }
             }
             .nookTabSurface(selected: isCurrentTab, hovered: isHovering)
+            .accessibilityAddTraits(isCurrentTab ? [.isSelected] : [])
             // Developer Mode on this tab's site, marked as Arc marks it.
             .overlay {
                 if nookSettings.isDeveloperSite(tabs.currentURL(for: item)?.host) {
@@ -229,6 +230,7 @@ public struct SpaceTab: View {
     private func label(_ title: String) -> Text {
         let tidy = tabs.tidyTitle(for: item)
         guard tidy.showsSite, let site = tidy.siteName else { return Text(tidy.title) }
+        if isCurrentTab { return Text(tidy.title + "  " + site) }
         return Text(tidy.title) + Text("  " + site).foregroundColor(.secondary)
     }
 

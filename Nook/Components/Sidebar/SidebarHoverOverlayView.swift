@@ -47,7 +47,7 @@ struct SidebarHoverOverlayView: View {
                         .environment(commandPalette)
                         .environmentObject(browserManager.gradientColorManager)
                         .frame(maxHeight: .infinity)
-                        .nookSidebarSurface()
+                        .nookSidebarSurface(floating: true)
                         .overlay(alignment: nookSettings.sidebarPosition == .left ? .trailing : .leading) {
                             Rectangle()
                                 .fill(.separator)

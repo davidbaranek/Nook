@@ -70,6 +70,14 @@ public enum NookDesign {
         public static let splitGap: CGFloat = pageInset
     }
 
+    public enum Toolbar {
+        public static let height: CGFloat = 44
+        public static let control: CGFloat = 28
+        public static let addressHeight: CGFloat = 30
+        public static let addressMaxWidth: CGFloat = 560
+        public static let compactBelow: CGFloat = 420
+    }
+
     // MARK: - Size
 
     public enum Size {
@@ -268,6 +276,10 @@ public enum NookDesign {
                 ? NSColor.white.withAlphaComponent(0.14)
                 : NSColor.white.withAlphaComponent(0.72)
         })
+        public static let selectedTab = Color(nsColor: .selectedContentBackgroundColor)
+        public static let selectedTabText = Color(nsColor: .alternateSelectedControlTextColor)
+        public static let inactiveSelectedTab = Color(nsColor: .unemphasizedSelectedContentBackgroundColor)
+        public static let inactiveSelectedTabText = Color(nsColor: .unemphasizedSelectedTextColor)
         #else
         public static let windowBackground = Color(uiColor: .systemBackground)
         public static let raised = Color(uiColor: .secondarySystemBackground) // floating cards, active tile

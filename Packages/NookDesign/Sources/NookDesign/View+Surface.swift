@@ -18,6 +18,7 @@ private struct DefaultSpaceThemeKey: EnvironmentKey {
 public extension EnvironmentValues {
     /// Controls inside a material-backed surface avoid an additional glass layer.
     @Entry var nookHasGlassSurface = false
+    @Entry var nookSelectedTab = false
     /// True while the chrome shows a space with no custom theme.
     var nookUsesDefaultSpaceTheme: Bool {
         get { self[DefaultSpaceThemeKey.self] }
@@ -70,10 +71,18 @@ public extension View {
     }
 
     /// Glass is behind the column only: do not clip its live pager or anchored address panel.
-    func nookSidebarSurface() -> some View {
+    func nookSidebarSurface(floating: Bool = false) -> some View {
         background {
-            sidebarMaterial
-                .allowsHitTesting(false)
+            Group {
+                if floating {
+                    sidebarMaterial
+                } else {
+                    // A docked column shares an edge with the page; its glass must not
+                    // cast the floating-panel shadow across that adjacent content.
+                    sidebarMaterial.clipped()
+                }
+            }
+            .allowsHitTesting(false)
         }
         .environment(\.nookHasGlassSurface, true)
     }
@@ -155,9 +164,54 @@ public extension View {
     /// Tab card shared by sidebar rows, split rows and native drag previews: the theme-tinted
     /// selection fill, a hover fill, and a continuous `Tab.radius` shape.
     func nookTabSurface(selected: Bool, hovered: Bool = false) -> some View {
+        modifier(NookTabSurface(selected: selected, hovered: hovered))
+    }
+}
+
+private struct NookTabSurface: ViewModifier {
+    let selected: Bool
+    let hovered: Bool
+    #if os(macOS)
+    @Environment(\.controlActiveState) private var activeState
+    #endif
+
+    func body(content: Content) -> some View {
         let shape = NookDesign.Radius.shape(NookDesign.Tab.radius)
-        return clipShape(shape)
-            .background(shape.fill(selected ? NookDesign.Surface.selection : hovered ? NookDesign.Surface.fill : .clear))
+        content
+            .clipShape(shape)
+            .background(shape.fill(fill))
             .contentShape(shape)
+            .environment(\.nookSelectedTab, selected)
+    }
+
+    private var fill: Color {
+        guard selected else { return hovered ? NookDesign.Surface.fill : .clear }
+        #if os(macOS)
+        return activeState == .inactive ? NookDesign.Surface.inactiveSelectedTab : NookDesign.Surface.selectedTab
+        #else
+        return NookDesign.Surface.selection
+        #endif
+    }
+}
+
+public extension View {
+    /// Text and monochrome symbols use the foreground paired with the system selection fill.
+    func nookTabForeground() -> some View { modifier(NookTabForeground()) }
+}
+
+private struct NookTabForeground: ViewModifier {
+    @Environment(\.nookSelectedTab) private var selected
+    #if os(macOS)
+    @Environment(\.controlActiveState) private var activeState
+    #endif
+
+    func body(content: Content) -> some View {
+        #if os(macOS)
+        content.foregroundStyle(selected
+            ? (activeState == .inactive ? NookDesign.Surface.inactiveSelectedTabText : NookDesign.Surface.selectedTabText)
+            : Color.primary)
+        #else
+        content.foregroundStyle(.primary)
+        #endif
     }
 }

@@ -35,7 +35,7 @@ public struct SplitHalfLabel: View {
                     .clipShape(NookDesign.Radius.shape(NookDesign.Radius.xs))
                 Text(title)
                     .font(NookDesign.Tab.font)
-                    .foregroundStyle(.primary)
+                    .nookTabForeground()
                     .lineLimit(1)
                     .truncationMode(.tail)
                 Spacer(minLength: NookDesign.Spacing.xs)
@@ -43,7 +43,7 @@ public struct SplitHalfLabel: View {
                     Button(action: { tabs.close(item.id) }) {
                         Image(systemName: "xmark")
                             .font(NookDesign.Font.secondary)
-                            .foregroundColor(.primary)
+                            .nookTabForeground()
                             .frame(width: NookDesign.Size.rowButton, height: NookDesign.Size.rowButton)
                             .background(isCloseHovering ? NookDesign.Surface.fillPressed : Color.clear)
                             .clipShape(NookDesign.Radius.shape(NookDesign.Radius.sm))

@@ -27,19 +27,20 @@ public struct NookIconButtonStyle: PrimitiveButtonStyle {
         if #available(macOS 26.0, *), !onGlass {
             button(configuration)
                 .buttonStyle(.glass)
+                .controlSize(.small)
                 .buttonBorderShape(.circle)
+                .frame(width: size, height: size)
         } else {
-            button(configuration).buttonStyle(.borderless)
+            button(configuration).buttonStyle(.borderless).frame(width: size, height: size)
         }
         #else
-        button(configuration).buttonStyle(.borderless)
+        button(configuration).buttonStyle(.borderless).frame(width: size, height: size)
         #endif
     }
 
     private func button(_ configuration: Configuration) -> some View {
         Button(role: configuration.role, action: configuration.trigger) {
             configuration.label
-                .frame(width: size, height: size)
                 .contentShape(Rectangle())
         }
     }
