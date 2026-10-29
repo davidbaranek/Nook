@@ -28,6 +28,7 @@ public struct SpaceThemeEditor: View {
 
     public var body: some View {
         SpaceThemePanel(theme: $theme)
+            .environment(\.nookHasGlassSurface, true)
             .onChange(of: theme) { _, newValue in
                 tabs.setTheme(newValue, forSpace: spaceID)
             }

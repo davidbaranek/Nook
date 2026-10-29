@@ -25,8 +25,11 @@ public struct NookIconButtonStyle: PrimitiveButtonStyle {
     public func makeBody(configuration: Configuration) -> some View {
         #if os(macOS)
         if #available(macOS 26.0, *), !onGlass {
-            // The system owns the glass button's font, padding and intrinsic size.
-            GlassButtonStyle().makeBody(configuration: configuration)
+            Button(role: configuration.role, action: configuration.trigger) {
+                configuration.label
+            }
+            .buttonStyle(.glass)
+            .buttonBorderShape(.circle)
         } else {
             inlineButton(configuration).buttonStyle(.borderless)
         }
@@ -97,7 +100,7 @@ public struct RectNavButtonStyle: PrimitiveButtonStyle {
     }
 }
 
-#Preview("Square Buttons") {
+#Preview("Icon Buttons") {
     VStack(spacing: 20) {
         // Default
         Button {

@@ -15,10 +15,13 @@ struct NookButtonStyle: PrimitiveButtonStyle {
     @ViewBuilder
     func makeBody(configuration: Configuration) -> some View {
         if #available(macOS 26.0, *), !onGlass {
+            let button = Button(role: configuration.role, action: configuration.trigger) {
+                configuration.label
+            }
             if variant == .primary {
-                GlassProminentButtonStyle().makeBody(configuration: configuration)
+                button.buttonStyle(.glassProminent).buttonBorderShape(.capsule)
             } else {
-                GlassButtonStyle().makeBody(configuration: configuration)
+                button.buttonStyle(.glass).buttonBorderShape(.capsule)
             }
         } else if variant == .primary {
             BorderedProminentButtonStyle().makeBody(configuration: configuration)
