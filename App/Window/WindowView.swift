@@ -316,9 +316,11 @@ struct WindowView: View {
                 .scrollIndicators(windowState.isSidebarResizeHovered ? .hidden : .automatic)
                 .frame(width: windowState.sidebarWidth)
                 .overlay(alignment: nookSettings.sidebarPosition == .left ? .trailing : .leading) {
-                    Rectangle().fill(.separator)
-                        .frame(width: NookDesign.Size.hairlineWidth)
-                        .allowsHitTesting(false)
+                    if nookSettings.hideWebContentBorder {
+                        Rectangle().fill(.separator)
+                            .frame(width: NookDesign.Size.hairlineWidth)
+                            .allowsHitTesting(false)
+                    }
                 }
                 .overlay(alignment: nookSettings.sidebarPosition == .left ? .trailing : .leading) {
                     // The expanded address panel extends across this edge. Suspend the
