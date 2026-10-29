@@ -355,11 +355,7 @@ struct URLBarView: View {
                 inlineSuggestionList
             }
         }
-        .background(colorScheme == .dark ? Color(white: 24.0 / 255.0) : .white,
-                    in: RoundedRectangle(cornerRadius: 15, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 15, style: .continuous)
-            .strokeBorder(colorScheme == .dark ? Color(white: 75.0 / 255.0) : Color.black.opacity(0.2), lineWidth: 0.5))
-        .shadow(color: .black.opacity(colorScheme == .dark ? 0.5 : 0.23), radius: 24, y: 10)
+        .nookFloatingSurface(in: NookDesign.Radius.shape(NookDesign.Radius.xl))
     }
 
     private var inlineSuggestionList: some View {

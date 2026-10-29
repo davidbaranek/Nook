@@ -3,8 +3,7 @@
 //  View+Surface.swift
 //  Nook
 //
-//  The surface recipes every layer goes through. Nook draws no Liquid Glass: floating layers
-//  are solid cards, sidebar chrome and rows are Surface fills.
+//  System materials for navigation and floating controls; ordinary fills for content rows.
 //
 
 import SwiftUI
@@ -14,6 +13,8 @@ private struct DefaultSpaceThemeKey: EnvironmentKey {
 }
 
 public extension EnvironmentValues {
+    /// Controls inside a glass surface use borderless system styles, avoiding glass on glass.
+    @Entry var nookHasGlassSurface = false
     /// True while the chrome shows a space with no custom theme.
     var nookUsesDefaultSpaceTheme: Bool {
         get { self[DefaultSpaceThemeKey.self] }
@@ -42,12 +43,34 @@ public extension View {
         }
     }
 
-    /// A layer that floats over content: solid raised card, hairline edge, floating shadow.
+    /// Transient panels use regular glass for readable text over arbitrary web content.
+    @ViewBuilder
     func nookFloatingSurface<S: InsettableShape>(in shape: S) -> some View {
+        #if os(macOS)
+        if #available(macOS 26.0, *) {
+            self.glassEffect(.regular, in: shape)
+                .environment(\.nookHasGlassSurface, true)
+        } else {
+            self.clipShape(shape)
+                .background(.regularMaterial, in: shape)
+                .nookElevation(.floating)
+                .environment(\.nookHasGlassSurface, true)
+        }
+        #else
         self.clipShape(shape)
             .background(shape.fill(NookDesign.Surface.raised))
             .overlay(shape.strokeBorder(NookDesign.Surface.hairline, lineWidth: NookDesign.Size.hairlineWidth))
             .nookElevation(.floating)
+        #endif
+    }
+
+    /// Glass is behind the column only: do not clip its live pager or anchored address panel.
+    func nookSidebarSurface() -> some View {
+        background {
+            sidebarMaterial
+                .allowsHitTesting(false)
+        }
+        .environment(\.nookHasGlassSurface, true)
     }
 
     /// Controls over video: a dark scrim, whatever the page or appearance.
@@ -69,6 +92,20 @@ public extension View {
     func nookControlSurface<S: InsettableShape>(_ isOn: Bool = true, tint: Color? = nil, in shape: S) -> some View {
         background(shape.fill(isOn ? (tint?.opacity(NookDesign.Surface.tintOpacity) ?? NookDesign.Surface.fill) : .clear))
     }
+}
+
+@ViewBuilder
+private var sidebarMaterial: some View {
+    #if os(macOS)
+    if #available(macOS 26.0, *) {
+        Rectangle().fill(.clear)
+            .glassEffect(.regular, in: Rectangle())
+    } else {
+        Rectangle().fill(.regularMaterial)
+    }
+    #else
+    Rectangle().fill(.regularMaterial)
+    #endif
 }
 
 /// Native tab interaction; Reduce Motion keeps the pressed card at its original scale.

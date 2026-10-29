@@ -18,7 +18,7 @@ struct SidebarMenu: View {
     @EnvironmentObject var browserManager: BrowserManager
     @Environment(\.nookSettings) var nookSettings
 
-    private let tabColumnWidth: CGFloat = NookWeb.SidebarWidth.min
+    private let tabColumnWidth: CGFloat = 110
 
     var body: some View {
         HStack(alignment: .center, spacing: 0) {
@@ -62,39 +62,50 @@ struct SidebarMenu: View {
         }
     }
 
-    private var selection: Binding<NookWeb.SidebarMenuTab?> {
-        Binding {
-            windowState.sidebarMenuSelectedTab
-        } set: { tab in
-            if let tab { windowState.sidebarMenuSelectedTab = tab }
-        }
-    }
+    var tabs: some View{
+        VStack {
 
-    private var tabs: some View {
-        VStack(alignment: .leading, spacing: NookDesign.Spacing.md) {
+            Spacer()
+            VStack(spacing: NookDesign.Spacing.xxl) {
+                SidebarMenuTab(
+                    image: "clock",
+                    activeImage: "clock.fill",
+                    title: "History",
+                    isActive: windowState.sidebarMenuSelectedTab == .history,
+                    action: {
+                        windowState.sidebarMenuSelectedTab = .history
+                    }
+                )
+                SidebarMenuTab(
+                    image: "square.on.square",
+                    activeImage: "square.fill.on.square.fill",
+                    title: "Spaces",
+                    isActive: windowState.sidebarMenuSelectedTab == .spaces,
+                    action: {
+                        windowState.sidebarMenuSelectedTab = .spaces
+                    }
+                )
+                SidebarMenuTab(
+                    image: "arrow.down.circle",
+                    activeImage: "arrow.down.circle.fill",
+                    title: "Downloads",
+                    isActive: windowState.sidebarMenuSelectedTab == .downloads,
+                    action: {
+                        windowState.sidebarMenuSelectedTab = .downloads
+                    }
+                )
+            }
+
+            Spacer()
             HStack {
-                Text("Library")
-                    .font(.headline)
-                Spacer()
                 Button("Back", systemImage: "arrow.backward", action: close)
-                    .labelStyle(.iconOnly)
-                    .buttonStyle(.plain)
-                    .help("Back to Browser")
+                .nookIconButtons()
+                Spacer()
             }
-            .padding(.horizontal, NookDesign.Spacing.lg)
-            .padding(.top, NookDesign.Spacing.lg)
-
-            List(selection: selection) {
-                Label("History", systemImage: "clock")
-                    .tag(NookWeb.SidebarMenuTab.history)
-                Label("Spaces", systemImage: "square.on.square")
-                    .tag(NookWeb.SidebarMenuTab.spaces)
-                Label("Downloads", systemImage: "arrow.down.circle")
-                    .tag(NookWeb.SidebarMenuTab.downloads)
-            }
-            .listStyle(.sidebar)
-            .scrollContentBackground(.hidden)
+            .padding(.leading, NookDesign.Spacing.md)
+            .padding(.bottom, NookDesign.Spacing.md)
         }
+        .padding(NookDesign.Spacing.md)
         .frame(width: tabColumnWidth)
         .frame(maxHeight: .infinity)
         .background(NookDesign.Surface.fill)

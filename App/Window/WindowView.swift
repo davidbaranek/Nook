@@ -251,7 +251,13 @@ struct WindowView: View {
             : spaceAccentHex.map { SpaceGradient.accent(hex: $0).primaryColor } ?? SpaceGradient.default.primaryColor
         let isActive = windowRegistry.activeWindowId == windowState.id
 
-        SpaceChromeBackground(theme: spaceTheme, accent: accent, isActive: isActive)
+        Group {
+            if spaceTheme == nil {
+                NativeChromeBackdrop()
+            } else {
+                SpaceChromeBackground(theme: spaceTheme, accent: accent, isActive: isActive)
+            }
+        }
             .spaceThemeAppearance(spaceTheme)
             .animation(NookDesign.Motion.standard, value: windowState.spaceID)
             .animation(NookDesign.Motion.standard, value: windowState.spaceDraftTheme == nil)
@@ -267,46 +273,46 @@ struct WindowView: View {
 
     @ViewBuilder
     private func SidebarWebViewStack() -> some View {
-        if nookSettings.sidebarPosition == .left {
-            NativeSidebarSplit {
-                sidebarContent
-            } detail: {
-                HStack(spacing: 0) {
-                    WebContent()
-                    if windowState.isSidebarAIChatVisible {
-                        AISidebar()
-                    }
-                }
-                .padding(.trailing, !nookSettings.hideWebContentBorder && !windowState.isSidebarAIChatVisible
-                    ? NookDesign.Chrome.pageInset : 0)
-            }
-        } else {
-            RightSidebarWebViewStack()
-        }
-    }
-
-    // Keep Nook's optional right-hand layout; NavigationSplitView's sidebar is leading.
-    @ViewBuilder
-    private func RightSidebarWebViewStack() -> some View {
         let aiVisible = windowState.isSidebarAIChatVisible
+        let aiAppearsOnTrailingEdge = nookSettings.sidebarPosition == .left
+        let sidebarVisible = windowState.isSidebarVisible
+        let sidebarOnRight = nookSettings.sidebarPosition == .right
+        let sidebarOnLeft = nookSettings.sidebarPosition == .left
         let bordered = !nookSettings.hideWebContentBorder
 
         HStack(spacing: 0) {
-            if aiVisible {
-                AISidebar()
+            if aiAppearsOnTrailingEdge {
+                SpacesSidebar()
+                    .zIndex(10)
+                WebContent()
+                if aiVisible {
+                    AISidebar()
+                }
+            } else {
+                if aiVisible {
+                    AISidebar()
+                }
+                WebContent()
+                SpacesSidebar()
+                    .zIndex(10)
             }
-            WebContent()
-            SpacesSidebar()
-                .zIndex(10)
         }
-        .padding(.trailing, bordered && !windowState.isSidebarVisible ? NookDesign.Chrome.pageInset : 0)
-        .padding(.leading, bordered && !aiVisible ? NookDesign.Chrome.pageInset : 0)
+        // Apply padding similar to regular sidebar: remove padding when sidebar/AI is visible on that side
+        // When sidebar is on left, AI appears on right (trailing); when sidebar is on right, AI appears on left (leading)
+        .padding(.trailing, !bordered || (sidebarVisible && sidebarOnRight) || (aiVisible && sidebarOnLeft) ? 0 : NookDesign.Chrome.pageInset)
+        .padding(.leading, !bordered || (sidebarVisible && sidebarOnLeft) || (aiVisible && sidebarOnRight) ? 0 : NookDesign.Chrome.pageInset)
     }
 
     @ViewBuilder
     private func SpacesSidebar() -> some View {
         if windowState.isSidebarVisible {
-            sidebarContent
+            SpacesSideBarView()
+                .environment(\.nookBaseColorScheme, systemColorScheme)
+                .spaceThemeAppearance(spaceTheme)
+                .nookSidebarSurface()
+                // Becomes its column in the library as the library comes out, as in Arc.
+                .modifier(LibraryFade())
+                .scrollIndicators(windowState.isSidebarResizeHovered ? .hidden : .automatic)
                 .frame(width: windowState.sidebarWidth)
                 .overlay(alignment: nookSettings.sidebarPosition == .left ? .trailing : .leading) {
                     // The expanded address panel extends across this edge. Suspend the
@@ -323,18 +329,6 @@ struct WindowView: View {
                 .environment(commandPalette)
                 .environmentObject(browserManager.gradientColorManager)
         }
-    }
-
-    private var sidebarContent: some View {
-        SpacesSideBarView()
-            .environment(\.nookBaseColorScheme, systemColorScheme)
-            .spaceThemeAppearance(spaceTheme)
-            .modifier(LibraryFade())
-            .scrollIndicators(windowState.isSidebarResizeHovered ? .hidden : .automatic)
-            .environmentObject(browserManager)
-            .environment(windowState)
-            .environment(commandPalette)
-            .environmentObject(browserManager.gradientColorManager)
     }
 
     @ViewBuilder

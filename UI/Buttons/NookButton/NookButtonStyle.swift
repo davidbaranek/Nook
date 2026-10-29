@@ -1,148 +1,40 @@
 // Licensed under GPL-3.0. See LICENSE.
-//
-//  NookButtonStyle.swift
-//  Nook
-//
-//  Created by Aether Aurelia on 11/10/2025.
-//
-
 import SwiftUI
 import NookDesign
-import Garnish
 import NookUI
 
-struct NookButtonStyle: ButtonStyle {
-    @Environment(\.colorScheme) var colorScheme
-    @Environment(\.isEnabled) var isEnabled
-    @EnvironmentObject var gradientColorManager: GradientColorManager
+/// Native buttons supply their own hover, press, focus, disabled and accessibility states.
+struct NookButtonStyle: PrimitiveButtonStyle {
+    @Environment(\.nookHasGlassSurface) private var onGlass
 
     let variant: Variant
     let shadowStyle: ShadowStyle
     let role: ButtonRole?
 
-    @State private var isHovering: Bool = false
+    // Retain the existing call-site API while letting the system own shape and elevation.
+    enum Variant { case secondary, primary }
+    enum ShadowStyle { case none, subtle, prominent }
 
-    // MARK: - Constants
-
-    private let cornerRadius: CGFloat = NookDesign.Radius.lg
-    private let verticalPadding: CGFloat = 12
-    private let horizontalPadding: CGFloat = 12
-
-    // Hover and press effects
-    private let hoverMixAmount: CGFloat = 0.2
-    private let pressedOffset: CGFloat = 2
-    private let hoverOffset: CGFloat = 0.5
-
-    // Highlight opacity values
-    private let highlightOpacityDefault: CGFloat = 0.1
-    private let highlightOpacityHover: CGFloat = 0.15
-    private let highlightOpacityPressed: CGFloat = 0.07
-
-    // Stroke widths
-    private let highlightStrokeWidth: CGFloat = 2
-
-    // Disabled state
-    private let disabledOpacity: CGFloat = 0.3
-
-    enum Variant {
-        case secondary  // Regular button
-        case primary    // Prominent button
-    }
-
-    enum ShadowStyle {
-        case none
-        case subtle
-        case prominent
-    }
-
-    // MARK: - Body
-
+    @ViewBuilder
     func makeBody(configuration: Configuration) -> some View {
-        ZStack {
-            // Calculate colors using Garnish for contrast
-            let baseColor = backgroundColor()
-            let contrastingShade = contrastingTextColor(for: baseColor)
-            let backgroundWithHover = baseColor.mix(with: contrastingShade, by: isHovering ? hoverMixAmount : 0)
+        if #available(macOS 26.0, *), !onGlass {
+            if variant == .primary {
+                button(configuration).buttonStyle(.glassProminent)
+            } else {
+                button(configuration).buttonStyle(.glass)
+            }
+        } else if variant == .primary {
+            button(configuration).buttonStyle(.borderedProminent)
+        } else {
+            button(configuration).buttonStyle(.bordered)
+        }
+    }
 
-            // Main button label with background
+    private func button(_ configuration: Configuration) -> some View {
+        Button(role: role ?? configuration.role, action: configuration.trigger) {
             configuration.label
-                .font(.body.weight(.semibold))
-                .foregroundStyle(contrastingShade)
-                .padding(.vertical, verticalPadding)
-                .padding(.horizontal, horizontalPadding)
-                .background(backgroundWithHover)
-                .clipShape(NookDesign.Radius.shape(cornerRadius))
         }
-        .compositingGroup()
-        .opacity(isEnabled ? 1.0 : disabledOpacity)
-        .animation(NookDesign.Motion.quick, value: configuration.isPressed)
-        .animation(NookDesign.Motion.quick, value: isHovering)
-        .onHoverTracking { hovering in
-            isHovering = hovering
-        }
-    }
-
-    // MARK: - Helper Methods
-
-    /// Returns the contrasting text color for the given background
-    private func contrastingTextColor(for background: Color) -> Color {
-        Garnish.contrastingShade(
-            of: background,
-            targetRatio: 2,
-            direction: .preferLight,
-            blendStyle: .strong
-        ) ?? textColor
-    }
-
-    /// Returns the highlight opacity based on button state
-    private func highlightOpacity(isPressed: Bool) -> CGFloat {
-        if !isEnabled {
-            return 0
-        } else if isPressed {
-            return highlightOpacityPressed
-        } else if isHovering {
-            return highlightOpacityHover
-        } else {
-            return highlightOpacityDefault
-        }
-    }
-
-    /// Returns the vertical offset based on button state
-    private func verticalOffset(isPressed: Bool) -> CGFloat {
-        if isPressed {
-            return pressedOffset
-        } else if isHovering {
-            return hoverOffset
-        } else {
-            return 0
-        }
-    }
-
-    /// Returns the base background color based on variant and role
-    private func backgroundColor() -> Color {
-        // Destructive role overrides variant colors
-        if role == .destructive {
-            return Color.red
-        }
-
-        switch variant {
-        case .secondary:
-            // Neutral gray for secondary buttons
-            return Color.white.mix(with: .black, by: colorScheme == .dark ? 0.8 : 0.06).opacity(0.7)
-        case .primary:
-            // Use accent color from gradient manager
-            return gradientColorManager.accentColor
-        }
-    }
-
-    /// Fallback text color when Garnish contrast calculation fails
-    private var textColor: Color {
-        switch variant {
-        case .secondary:
-            return Color.primary
-        case .primary:
-            return Color.white
-        }
+        .controlSize(.large)
     }
 }
 
@@ -163,7 +55,7 @@ struct ScaleButtonStyle: ButtonStyle {
 
 // MARK: - Convenience Extensions
 
-extension ButtonStyle where Self == NookButtonStyle {
+extension PrimitiveButtonStyle where Self == NookButtonStyle {
     static var nookButton: NookButtonStyle {
         NookButtonStyle(variant: .secondary, shadowStyle: .subtle, role: nil)
     }
@@ -235,7 +127,6 @@ private struct ButtonPreviewSection: View {
             Button("Create Space", systemImage: "plus") {
             }
             .buttonStyle(.nookButtonProminent)
-            .background(.red)
 
             Button("Cancel") {
             }

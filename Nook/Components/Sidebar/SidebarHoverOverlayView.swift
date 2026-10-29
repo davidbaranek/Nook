@@ -19,10 +19,7 @@ struct SidebarHoverOverlayView: View {
     @Environment(BrowserWindowState.self) private var windowState
     @Environment(CommandPalette.self) private var commandPalette
     @Environment(\.nookSettings) var nookSettings
-
-    private let cornerRadius: CGFloat = NookDesign.Radius.lg
-    private let horizontalInset: CGFloat = NookDesign.Spacing.md
-    private let verticalInset: CGFloat = NookDesign.Spacing.md
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         // Only render overlay plumbing when the real sidebar is collapsed
@@ -50,15 +47,14 @@ struct SidebarHoverOverlayView: View {
                         .environment(commandPalette)
                         .environmentObject(browserManager.gradientColorManager)
                         .frame(maxHeight: .infinity)
-                        // Clip the floating surface, not descendants: the expanded address
-                        // panel is anchored here but deliberately extends over the page.
-                        .background {
-                            sidebarBackground
-                                .nookFloatingSurface(in: NookDesign.Radius.shape(cornerRadius))
+                        .nookSidebarSurface()
+                        .overlay(alignment: nookSettings.sidebarPosition == .left ? .trailing : .leading) {
+                            Rectangle()
+                                .fill(.separator)
+                                .frame(width: NookDesign.Size.hairlineWidth)
+                                .allowsHitTesting(false)
                         }
                         .alwaysArrowCursor()
-                        .padding(nookSettings.sidebarPosition == .left ? .leading : .trailing, horizontalInset)
-                        .padding(.vertical, verticalInset)
                         .transition(
                             .move(edge: nookSettings.sidebarPosition == .left ? .leading : .trailing)
                                 .combined(with: .opacity)
@@ -66,6 +62,10 @@ struct SidebarHoverOverlayView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: nookSettings.sidebarPosition == .left ? .topLeading : .topTrailing)
+            .ignoresSafeArea(.container)
+            .transaction { transaction in
+                if reduceMotion { transaction.animation = nil }
+            }
             // Container remains passive; only overlay/hotspot intercept
         }
     }
@@ -75,13 +75,4 @@ struct SidebarHoverOverlayView: View {
         return browserManager.tabs.space(spaceID)?.theme
     }
 
-    /// The docked sidebar's own background, so the overlay reads as the same sidebar.
-    private var sidebarBackground: some View {
-        let accent = windowState.isIncognito ? SpaceGradient.incognito.primaryColor : browserManager.gradientColorManager.accentColor
-        let isAgent = windowState.spaceID != nil && windowState.spaceID == browserManager.tabs.agentSpaceID
-        return SpaceChromeBackground(theme: overlayTheme, accent: accent, isActive: true)
-            .spaceThemeAppearance(overlayTheme)
-            .overlay(windowState.isIncognito ? NookDesign.Surface.privateTint : Color.clear)
-            .overlay(Rectangle().fill(NookDesign.Surface.agentGradient).opacity(isAgent ? NookDesign.Surface.agentChromeOpacity : 0))
-    }
 }

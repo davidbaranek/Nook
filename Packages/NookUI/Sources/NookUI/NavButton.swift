@@ -10,12 +10,9 @@
 import SwiftUI
 import NookDesign
 
-/// Square icon button. Hover shows a fill, press shows a stronger fill and a 0.95 scale.
-/// Pass size: or radius: only where a call site needs a non-default (media controls 24, URL bar and space title 28, space switcher radius lg).
-public struct NookIconButtonStyle: ButtonStyle {
-    @Environment(\.isEnabled) private var isEnabled
-    @State private var isHovering = false
-
+/// System icon buttons retain Nook's hit area without hand-drawn hover/press effects.
+public struct NookIconButtonStyle: PrimitiveButtonStyle {
+    @Environment(\.nookHasGlassSurface) private var onGlass
     let size: CGFloat
     let radius: CGFloat
 
@@ -24,110 +21,53 @@ public struct NookIconButtonStyle: ButtonStyle {
         self.radius = radius
     }
 
+    @ViewBuilder
     public func makeBody(configuration: Configuration) -> some View {
-        ZStack {
-            NookDesign.Radius.shape(radius)
-                .fill(fill(isPressed: configuration.isPressed))
-                .frame(width: size, height: size)
-            configuration.label
-                .foregroundStyle(.primary)
+        #if os(macOS)
+        if #available(macOS 26.0, *), !onGlass {
+            button(configuration)
+                .buttonStyle(.glass)
+                .buttonBorderShape(.circle)
+        } else {
+            button(configuration).buttonStyle(.borderless)
         }
-        .frame(width: size, height: size)
-        .opacity(isEnabled ? 1.0 : 0.3)
-        .contentTransition(.symbolEffect(.replace.upUp.byLayer, options: .nonRepeating))
-        .scaleEffect(configuration.isPressed && isEnabled ? 0.95 : 1.0)
-        .animation(NookDesign.Motion.quick, value: configuration.isPressed)
-        .animation(NookDesign.Motion.quick, value: isHovering)
-        .onHoverTracking { hovering in isHovering = hovering }
+        #else
+        button(configuration).buttonStyle(.borderless)
+        #endif
     }
 
-    private func fill(isPressed: Bool) -> Color {
-        guard isEnabled else { return .clear }
-        if isPressed { return NookDesign.Surface.fillPressed }
-        if isHovering { return NookDesign.Surface.fill }
-        return .clear
+    private func button(_ configuration: Configuration) -> some View {
+        Button(role: configuration.role, action: configuration.trigger) {
+            configuration.label
+                .frame(width: size, height: size)
+                .contentShape(Rectangle())
+        }
     }
 }
 
 public extension View {
-    /// Larger navigation and footer symbols, without changing tab or URL-bar controls.
     func nookSidebarIconButtons() -> some View {
         labelStyle(.iconOnly)
             .font(.system(size: NookDesign.SidebarChrome.icon, weight: .regular))
             .buttonStyle(NookIconButtonStyle(size: NookDesign.SidebarChrome.button))
-            .foregroundStyle(.primary)
     }
 
-    /// Standalone icon buttons, Nook's one button look: no container, a fill only on hover.
     func nookIconButtons() -> some View {
         labelStyle(.iconOnly)
             .buttonStyle(NookIconButtonStyle())
-            .foregroundStyle(.primary)
     }
 }
 
-/// Rectangular, labeled variant of NookIconButtonStyle that allows custom widths
-/// Use this for buttons that need to be wider than square (e.g., "New Space" button)
-public struct RectNavButtonStyle: ButtonStyle {
-    @Environment(\.colorScheme) var colorScheme
-    @Environment(\.isEnabled) var isEnabled
-    @Environment(\.controlSize) var controlSize
-    @State private var isHovering: Bool = false
-
+/// Labeled controls use the standard borderless style; system controlSize determines sizing.
+public struct RectNavButtonStyle: PrimitiveButtonStyle {
     public init() {}
 
     public func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .foregroundStyle(.primary)
-            .padding(.horizontal, horizontalPadding)
-            .frame(height: height)
-            .background {
-                NookDesign.Radius.shape(cornerRadius)
-                    .fill(.primary.opacity(backgroundColorOpacity(isPressed: configuration.isPressed)))
-            }
-            .contentShape(.rect)
-            .opacity(isEnabled ? 1.0 : 0.3)
-            .contentTransition(.symbolEffect(.replace.upUp.byLayer, options: .nonRepeating))
-            .scaleEffect(configuration.isPressed && isEnabled ? 0.95 : 1.0)
-            .animation(NookDesign.Motion.quick, value: configuration.isPressed)
-            .animation(NookDesign.Motion.quick, value: isHovering)
-            .onHoverTracking { hovering in
-                isHovering = hovering
-            }
-    }
-
-    private var height: CGFloat {
-        switch controlSize {
-        case .mini: 24
-        case .small: 28
-        case .regular: 32
-        case .large: 40
-        case .extraLarge: 48
-        @unknown default: 32
+        Button(role: configuration.role, action: configuration.trigger) {
+            configuration.label
+                .padding(.horizontal, NookDesign.Spacing.sm)
         }
-    }
-
-    private var horizontalPadding: CGFloat {
-        switch controlSize {
-        case .mini: 8
-        case .small: 10
-        case .regular: 12
-        case .large: 16
-        case .extraLarge: 20
-        @unknown default: 12
-        }
-    }
-
-    private var cornerRadius: CGFloat {
-        NookDesign.Radius.md
-    }
-
-    private func backgroundColorOpacity(isPressed: Bool) -> Double {
-        if (isHovering || isPressed) && isEnabled {
-            return colorScheme == .dark ? 0.2 : 0.1
-        } else {
-            return 0.0
-        }
+        .buttonStyle(.borderless)
     }
 }
 

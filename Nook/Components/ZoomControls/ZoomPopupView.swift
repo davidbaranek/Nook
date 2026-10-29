@@ -20,71 +20,31 @@ struct ZoomPopupView: View {
     @State private var hideTimer: Timer?
 
     var body: some View {
-        // Just the three controls: - button, percentage, + button
-        HStack(spacing: 8) {
-            // Zoom out button
-            Button(action: {
+        HStack(spacing: NookDesign.Spacing.md) {
+            Button("Zoom Out", systemImage: "minus") {
                 onZoomOut()
                 resetHideTimer()
-            }) {
-                Image(systemName: "minus")
-                    .font(NookDesign.Font.secondary)
-                    .foregroundStyle(.primary)
-                    .frame(width: 28, height: 28)
-                    .background(
-                        NookDesign.Radius.shape(NookDesign.Radius.sm)
-                            .fill(NookDesign.Surface.fill)
-                    )
-                    .overlay(
-                        NookDesign.Radius.shape(NookDesign.Radius.sm)
-                            .stroke(NookDesign.Surface.hairline, lineWidth: 1)
-                    )
             }
-            .buttonStyle(PlainButtonStyle())
+            .labelStyle(.iconOnly)
+            .help("Zoom Out")
             .disabled(zoomManager.isAtMinimumZoom)
 
-            // Current zoom percentage (clickable for reset)
-            Button(action: {
+            Button(zoomManager.getZoomPercentageDisplay()) {
                 onZoomReset()
                 resetHideTimer()
-            }) {
-                Text(zoomManager.getZoomPercentageDisplay())
-                    .font(NookDesign.Font.label)
-                    .foregroundStyle(.primary)
-                    .frame(minWidth: 50, maxHeight: 28)
-                    .padding(.horizontal, 8)
-                    .background(
-                        NookDesign.Radius.shape(NookDesign.Radius.sm)
-                            .fill(NookDesign.Surface.fillPressed)
-                    )
-                    .overlay(
-                        NookDesign.Radius.shape(NookDesign.Radius.sm)
-                            .stroke(NookDesign.Surface.hairline, lineWidth: 1)
-                    )
             }
-            .buttonStyle(PlainButtonStyle())
+            .help("Reset Zoom")
 
-            // Zoom in button
-            Button(action: {
+            Button("Zoom In", systemImage: "plus") {
                 onZoomIn()
                 resetHideTimer()
-            }) {
-                Image(systemName: "plus")
-                    .font(NookDesign.Font.secondary)
-                    .foregroundStyle(.primary)
-                    .frame(width: 28, height: 28)
-                    .background(
-                        NookDesign.Radius.shape(NookDesign.Radius.sm)
-                            .fill(NookDesign.Surface.fill)
-                    )
-                    .overlay(
-                        NookDesign.Radius.shape(NookDesign.Radius.sm)
-                            .stroke(NookDesign.Surface.hairline, lineWidth: 1)
-                    )
             }
-            .buttonStyle(PlainButtonStyle())
+            .labelStyle(.iconOnly)
+            .help("Zoom In")
             .disabled(zoomManager.isAtMaximumZoom)
         }
+        .buttonStyle(.borderless)
+        .controlSize(.small)
         .padding(12)
         .frame(maxWidth: 160)
         .nookFloatingSurface(in: NookDesign.Radius.shape(NookDesign.Radius.lg))
