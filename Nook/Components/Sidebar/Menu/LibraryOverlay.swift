@@ -110,10 +110,12 @@ struct LibraryPushContainer<Content: View>: View {
                 // is showing.
                 TrafficLights(visible: lightsVisible || progress > 0, alpha: abs(1 - 2 * progress))
                     .frame(width: 0, height: 0)
-                LibraryPanel(width: width, shown: shown)
                 content
                     .environment(\.libraryProgress, progress)
                     .offset(x: onRight ? -push : push)
+                // Cover the native sidebar surface as the library takes its place.
+                // Fading only the sidebar's content leaves its system material visible.
+                LibraryPanel(width: width, shown: shown)
                 // While the library is out, a click on the page beside it brings the page back.
                 // Only beside it: an overlay on the moved browser stays at the browser's old
                 // frame (offset moves drawing, not layout) and swallowed every click in the library.
@@ -178,6 +180,7 @@ struct LibraryPanel: View {
                 .frame(width: width)
                 .frame(maxHeight: .infinity)
                 .padding(.top, NookDesign.Spacing.sidebarTop)
+                .background(Color(nsColor: .windowBackgroundColor))
                 .spaceThemeAppearance(theme)
                 // Trails the browser in, so it reads as underneath, fading in as it comes. No blur or
                 // scale: those flatten the AppKit views inside into a picture (see LibraryFade).

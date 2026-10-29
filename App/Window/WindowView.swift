@@ -267,45 +267,46 @@ struct WindowView: View {
 
     @ViewBuilder
     private func SidebarWebViewStack() -> some View {
+        if nookSettings.sidebarPosition == .left {
+            NativeSidebarSplit {
+                sidebarContent
+            } detail: {
+                HStack(spacing: 0) {
+                    WebContent()
+                    if windowState.isSidebarAIChatVisible {
+                        AISidebar()
+                    }
+                }
+                .padding(.trailing, !nookSettings.hideWebContentBorder && !windowState.isSidebarAIChatVisible
+                    ? NookDesign.Chrome.pageInset : 0)
+            }
+        } else {
+            RightSidebarWebViewStack()
+        }
+    }
+
+    // Keep Nook's optional right-hand layout; NavigationSplitView's sidebar is leading.
+    @ViewBuilder
+    private func RightSidebarWebViewStack() -> some View {
         let aiVisible = windowState.isSidebarAIChatVisible
-        let aiAppearsOnTrailingEdge = nookSettings.sidebarPosition == .left
-        let sidebarVisible = windowState.isSidebarVisible
-        let sidebarOnRight = nookSettings.sidebarPosition == .right
-        let sidebarOnLeft = nookSettings.sidebarPosition == .left
         let bordered = !nookSettings.hideWebContentBorder
 
         HStack(spacing: 0) {
-            if aiAppearsOnTrailingEdge {
-                SpacesSidebar()
-                    .zIndex(10)
-                WebContent()
-                if aiVisible {
-                    AISidebar()
-                }
-            } else {
-                if aiVisible {
-                    AISidebar()
-                }
-                WebContent()
-                SpacesSidebar()
-                    .zIndex(10)
+            if aiVisible {
+                AISidebar()
             }
+            WebContent()
+            SpacesSidebar()
+                .zIndex(10)
         }
-        // Apply padding similar to regular sidebar: remove padding when sidebar/AI is visible on that side
-        // When sidebar is on left, AI appears on right (trailing); when sidebar is on right, AI appears on left (leading)
-        .padding(.trailing, !bordered || (sidebarVisible && sidebarOnRight) || (aiVisible && sidebarOnLeft) ? 0 : NookDesign.Chrome.pageInset)
-        .padding(.leading, !bordered || (sidebarVisible && sidebarOnLeft) || (aiVisible && sidebarOnRight) ? 0 : NookDesign.Chrome.pageInset)
+        .padding(.trailing, bordered && !windowState.isSidebarVisible ? NookDesign.Chrome.pageInset : 0)
+        .padding(.leading, bordered && !aiVisible ? NookDesign.Chrome.pageInset : 0)
     }
 
     @ViewBuilder
     private func SpacesSidebar() -> some View {
         if windowState.isSidebarVisible {
-            SpacesSideBarView()
-                .environment(\.nookBaseColorScheme, systemColorScheme)
-                .spaceThemeAppearance(spaceTheme)
-                // Becomes its column in the library as the library comes out, as in Arc.
-                .modifier(LibraryFade())
-                .scrollIndicators(windowState.isSidebarResizeHovered ? .hidden : .automatic)
+            sidebarContent
                 .frame(width: windowState.sidebarWidth)
                 .overlay(alignment: nookSettings.sidebarPosition == .left ? .trailing : .leading) {
                     // The expanded address panel extends across this edge. Suspend the
@@ -322,6 +323,18 @@ struct WindowView: View {
                 .environment(commandPalette)
                 .environmentObject(browserManager.gradientColorManager)
         }
+    }
+
+    private var sidebarContent: some View {
+        SpacesSideBarView()
+            .environment(\.nookBaseColorScheme, systemColorScheme)
+            .spaceThemeAppearance(spaceTheme)
+            .modifier(LibraryFade())
+            .scrollIndicators(windowState.isSidebarResizeHovered ? .hidden : .automatic)
+            .environmentObject(browserManager)
+            .environment(windowState)
+            .environment(commandPalette)
+            .environmentObject(browserManager.gradientColorManager)
     }
 
     @ViewBuilder
