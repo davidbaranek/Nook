@@ -44,18 +44,24 @@ struct WindowView: View {
             // In its own view, so a swipe re-renders the push and not this whole window.
             // The window buttons sit in the sidebar's header, so they come and go with it, and
             // with the library while it is out (the container knows how far that is).
-            LibraryPushContainer(lightsVisible: windowState.isSidebarVisible || hoverSidebarManager.isOverlayVisible) {
-                SidebarWebViewStack()
-            }
-            .environmentObject(browserManager)
-            .environment(windowState)
-
-            // Hover-reveal Sidebar overlay (slides in over web content)
-            SidebarHoverOverlayView()
-                .environmentObject(hoverSidebarManager)
+            ZStack {
+                LibraryPushContainer(lightsVisible: windowState.isSidebarVisible || hoverSidebarManager.isOverlayVisible) {
+                    SidebarWebViewStack()
+                }
+                .environmentObject(browserManager)
                 .environment(windowState)
 
-            CommandPaletteView()
+                // Hover-reveal Sidebar overlay (slides in over web content)
+                SidebarHoverOverlayView()
+                    .environmentObject(hoverSidebarManager)
+                    .environment(windowState)
+            }
+            .overlayPreferenceValue(SearchContentBoundsKey.self) { anchor in
+                GeometryReader { geometry in
+                    CommandPaletteView(contentBounds: anchor.map { geometry[$0] }
+                        ?? CGRect(origin: .zero, size: geometry.size))
+                }
+            }
             DialogView()
 
             // Peek overlay for external link previews
@@ -374,6 +380,7 @@ struct WindowView: View {
                 }
 
                 WebsiteView()
+                    .anchorPreference(key: SearchContentBoundsKey.self, value: .bounds) { $0 }
                     .zIndex(2000)
                     .overlay(alignment: .topTrailing) {
                         if windowState.isPortraitCaptureVisible,
@@ -443,6 +450,14 @@ struct WindowView: View {
         } else {
             return AnyShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         }
+    }
+}
+
+private struct SearchContentBoundsKey: PreferenceKey {
+    static var defaultValue: Anchor<CGRect>? { nil }
+
+    static func reduce(value: inout Anchor<CGRect>?, nextValue: () -> Anchor<CGRect>?) {
+        value = nextValue() ?? value
     }
 }
 

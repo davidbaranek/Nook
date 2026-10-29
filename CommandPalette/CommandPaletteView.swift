@@ -76,25 +76,10 @@ struct CommandPaletteView: View {
 
     let commandPaletteWidth: CGFloat = 765
     let commandPaletteHorizontalPadding: CGFloat = 10
-    
-    /// Active window width
-    private var currentWindowWidth: CGFloat {
-        return NSApplication.shared.keyWindow?.frame.width ?? 0
-    }
-    
-    /// Check if the command palette fits in the window
-    private var isWindowTooNarrow: Bool {
-        let requiredWidth = commandPaletteWidth + (commandPaletteHorizontalPadding * 2)
-        return currentWindowWidth <= requiredWidth
-    }
-    
-    /// Caclulate the correct command palette width
+    let contentBounds: CGRect
+
     private var effectiveCommandPaletteWidth: CGFloat {
-        if isWindowTooNarrow {
-            return max(200, currentWindowWidth - (commandPaletteHorizontalPadding * 2))
-        } else {
-            return commandPaletteWidth
-        }
+        max(0, min(commandPaletteWidth, contentBounds.width - commandPaletteHorizontalPadding * 2))
     }
 
     var body: some View {
@@ -298,7 +283,9 @@ struct CommandPaletteView: View {
                         .padding(10)
                         .frame(maxWidth: .infinity)
                         .frame(width: effectiveCommandPaletteWidth)
-                        .nookSearchSurface(in: NookDesign.Radius.shape(NookDesign.Radius.xxl))
+                        .nookSearchSurface(
+                            in: NookDesign.Radius.shape(NookDesign.Radius.xxl),
+                            tint: visibleSuggestions.isEmpty ? Color(nsColor: .windowBackgroundColor) : nil)
                         .animation(
                             NookDesign.Motion.quick,
                             value: searchManager.suggestions.count
@@ -309,17 +296,21 @@ struct CommandPaletteView: View {
                         width: effectiveCommandPaletteWidth,
                         height: 328
                     )
-
                     Spacer()
                 }
                 Spacer()
             }
+            .frame(width: contentBounds.width, height: contentBounds.height)
+            .position(x: contentBounds.midX, y: contentBounds.midY)
 
         }
         .allowsHitTesting(isVisible)
         .opacity(isVisible ? 1.0 : 0.0)
         .onChange(of: commandPalette.isVisible) { _, newVisible in
             if newVisible {
+                if windowState.isSidebarMenuVisible || windowState.libraryDrag != nil {
+                    LibraryMotion.close(windowState)
+                }
                 searchManager.setTabs(browserManager.tabs, window: windowState)
                 searchManager.setHistoryManager(browserManager.historyManager)
                 searchManager.updateSpaceContext()
