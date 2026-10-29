@@ -27,9 +27,9 @@ public extension EnvironmentValues {
 }
 
 public extension View {
-    /// Search suggestions float above content on one adaptive glass surface.
+    /// Floating panels share one adaptive glass surface.
     @ViewBuilder
-    func nookSearchSurface<S: InsettableShape>(in shape: S) -> some View {
+    func nookGlassSurface<S: InsettableShape>(in shape: S) -> some View {
         if #available(macOS 26.0, iOS 26.0, *) {
             self.glassEffect(.regular, in: shape)
                 .environment(\.nookHasGlassSurface, true)

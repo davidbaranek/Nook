@@ -355,7 +355,7 @@ struct URLBarView: View {
                 inlineSuggestionList
             }
         }
-        .nookSearchSurface(in: NookDesign.Radius.shape(NookDesign.Radius.xl))
+        .nookGlassSurface(in: NookDesign.Radius.shape(NookDesign.Radius.xl))
     }
 
     private var inlineSuggestionList: some View {
