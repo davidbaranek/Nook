@@ -54,7 +54,7 @@ public extension View {
         #if os(macOS)
         self.clipShape(shape)
             .background {
-                NookPopoverMaterial()
+                NookVisualEffectMaterial(material: .popover, blendingMode: .withinWindow)
                     .clipShape(shape)
                     .allowsHitTesting(false)
             }
@@ -70,16 +70,18 @@ public extension View {
         #endif
     }
 
-    /// Glass is behind the column only: do not clip its live pager or anchored address panel.
+    /// Only the background changes; the live pager and anchored address panel stay unclipped.
     func nookSidebarSurface(floating: Bool = false) -> some View {
         background {
             Group {
                 if floating {
                     sidebarMaterial
                 } else {
-                    // A docked column shares an edge with the page; its glass must not
-                    // cast the floating-panel shadow across that adjacent content.
-                    sidebarMaterial.clipped()
+                    #if os(macOS)
+                    NookVisualEffectMaterial(material: .sidebar, blendingMode: .behindWindow)
+                    #else
+                    Rectangle().fill(.regularMaterial)
+                    #endif
                 }
             }
             .allowsHitTesting(false)
@@ -109,21 +111,22 @@ public extension View {
 }
 
 #if os(macOS)
-/// These panels live inside the browser window, so sample its content rather than the
-/// desktop. AppKit owns material density, vibrancy and Reduce Transparency behavior.
-private struct NookPopoverMaterial: NSViewRepresentable {
+/// AppKit owns material density, vibrancy, activity and Reduce Transparency behavior.
+private struct NookVisualEffectMaterial: NSViewRepresentable {
+    let material: NSVisualEffectView.Material
+    let blendingMode: NSVisualEffectView.BlendingMode
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.colorSchemeContrast) private var contrast
 
     func makeNSView(context: Context) -> NSVisualEffectView {
         let view = NSVisualEffectView()
-        view.material = .popover
-        view.blendingMode = .withinWindow
         view.state = .followsWindowActiveState
         return view
     }
 
     func updateNSView(_ view: NSVisualEffectView, context: Context) {
+        view.material = material
+        view.blendingMode = blendingMode
         let dark = colorScheme == .dark
         let name: NSAppearance.Name = contrast == .increased
             ? (dark ? .accessibilityHighContrastDarkAqua : .accessibilityHighContrastAqua)
