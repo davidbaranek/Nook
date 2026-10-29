@@ -23,7 +23,7 @@ struct SidebarHoverOverlayView: View {
 
     var body: some View {
         // Only render overlay plumbing when the real sidebar is collapsed
-        if !windowState.isSidebarVisible && !windowState.isSidebarMenuVisible {
+        if !windowState.isSidebarVisible {
             ZStack(alignment: nookSettings.sidebarPosition == .left ? .leading : .trailing) {
                 // Edge hover hotspot
                 Color.clear
@@ -47,7 +47,8 @@ struct SidebarHoverOverlayView: View {
                         .environment(commandPalette)
                         .environmentObject(browserManager.gradientColorManager)
                         .frame(maxHeight: .infinity)
-                        .nookSidebarSurface(floating: true)
+                        .background { sidebarBackground }
+                        .environment(\.nookHasGlassSurface, true)
                         .overlay(alignment: nookSettings.sidebarPosition == .left ? .trailing : .leading) {
                             Rectangle()
                                 .fill(.separator)
@@ -68,6 +69,15 @@ struct SidebarHoverOverlayView: View {
             }
             // Container remains passive; only overlay/hotspot intercept
         }
+    }
+
+    private var sidebarBackground: some View {
+        let accent = windowState.isIncognito ? SpaceGradient.incognito.primaryColor : browserManager.gradientColorManager.accentColor
+        let isAgent = windowState.spaceID != nil && windowState.spaceID == browserManager.tabs.agentSpaceID
+        return SpaceChromeBackground(theme: overlayTheme, accent: accent, isActive: true)
+            .spaceThemeAppearance(overlayTheme)
+            .overlay(windowState.isIncognito ? NookDesign.Surface.privateTint : Color.clear)
+            .overlay(Rectangle().fill(NookDesign.Surface.agentGradient).opacity(isAgent ? NookDesign.Surface.agentChromeOpacity : 0))
     }
 
     private var overlayTheme: SpaceTheme? {

@@ -180,7 +180,7 @@ private struct PinnedTile: View {
         if let theme = space.theme {
             let resolved = theme.resolve(systemDark: colorScheme == .dark, dimmed: !isActive)
             guard let stop = resolved.stops.first else { return nil }
-            let opacity = reduceTransparency || !settings.themeTranslucency ? 1 : NookDesign.Surface.themeTintOpacity(intensity: theme.intensity)
+            let opacity = reduceTransparency ? 1 : 1 - theme.chromeTransparency(legacyEnabled: settings.themeTranslucency)
             let base = NSColor(srgbRed: stop.r, green: stop.g, blue: stop.b, alpha: 1)
             guard let chrome = blend(base, toward: 1 - opacity) else { return nil }
             return SpaceTheme.tileColors(chrome: chrome, dark: resolved.isDark)

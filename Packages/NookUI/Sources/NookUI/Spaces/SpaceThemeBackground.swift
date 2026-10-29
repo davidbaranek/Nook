@@ -31,22 +31,31 @@ public struct SpaceChromeBackground: View {
         self.blursBehind = blursBehind
     }
 
-    private var translucent: Bool { blursBehind && settings.themeTranslucency && !reduceTransparency }
-
     public var body: some View {
         if let theme {
+            let transparency = blursBehind && !reduceTransparency
+                ? theme.chromeTransparency(legacyEnabled: settings.themeTranslucency) : 0
             let resolved = theme.resolve(systemDark: colorScheme == .dark, dimmed: !isActive)
             let twoTone = theme.points.count > 1
             LinearGradient(
                 colors: resolved.stops.map(Color.init),
                 startPoint: twoTone ? .topLeading : .top,
                 endPoint: twoTone ? .bottomTrailing : .bottom)
-                // Intensity is how much of the desktop shows through, as in Arc.
-                .opacity(!translucent ? 1 : NookDesign.Surface.themeTintOpacity(intensity: theme.intensity))
+                .opacity(1 - transparency)
                 .background {
-                    #if os(macOS)
-                    if translucent { BehindWindowBlur(isDark: resolved.isDark) }
-                    #endif
+                    if transparency > 0 {
+                        if #available(macOS 26.0, iOS 26.0, *), theme.transparencyStyle == .glass {
+                            Rectangle().fill(.clear)
+                                .glassEffect(.regular, in: Rectangle())
+                                .clipped()
+                        } else {
+                            #if os(macOS)
+                            BehindWindowBlur(isDark: resolved.isDark)
+                            #else
+                            Rectangle().fill(.regularMaterial)
+                            #endif
+                        }
+                    }
                 }
                 .overlay {
                     // Only when there is grain: an overlay blend is its own compositing pass every
@@ -58,6 +67,12 @@ public struct SpaceChromeBackground: View {
         } else {
             NookDesign.Surface.containerGradient(accent: accent, isActive: isActive)
         }
+    }
+}
+
+extension SpaceTheme {
+    public func chromeTransparency(legacyEnabled: Bool) -> Double {
+        transparency ?? (legacyEnabled ? 1 - NookDesign.Surface.themeTintOpacity(intensity: intensity) : 0)
     }
 }
 

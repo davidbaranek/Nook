@@ -4,6 +4,37 @@ import Testing
 @testable import NookTabsCore
 
 struct SpaceThemeTests {
+    @Test func transparencySettingsSurviveSavingASpace() throws {
+        var f = Fixture()
+        for style in SpaceTheme.TransparencyStyle.allCases {
+            let theme = SpaceTheme(points: [.center], transparency: 0.65, transparencyStyle: style)
+            try f.tree.setTheme(f.spaceA, theme: theme, now: fixedNow)
+            let data = try JSONEncoder().encode(try #require(f.tree.space(f.spaceA)))
+            let restored = try JSONDecoder().decode(SpaceRecord.self, from: data)
+            #expect(restored.theme?.transparency == 0.65)
+            #expect(restored.theme?.transparencyStyle == style)
+        }
+    }
+
+    @Test func legacyThemesKeepTheirTransparencyFallback() throws {
+        let theme = try JSONDecoder().decode(SpaceTheme.self, from: Data(#"{"intensity":0.4}"#.utf8))
+        #expect(theme.transparency == nil)
+        #expect(theme.transparencyStyle == .blur)
+        let saved = try JSONDecoder().decode(SpaceTheme.self, from: JSONEncoder().encode(theme))
+        #expect(saved.transparency == nil)
+    }
+
+    @Test func transparencyDecodeClampsAndToleratesFutureStyles() throws {
+        let high = try JSONDecoder().decode(SpaceTheme.self, from: Data(#"{"transparency":9,"transparencyStyle":"future"}"#.utf8))
+        #expect(high.transparency == 1)
+        #expect(high.transparencyStyle == .blur)
+        let low = SpaceTheme(points: [], transparency: -1)
+        #expect(low.transparency == 0)
+        let opaque = SpaceTheme(points: [], transparency: 0, transparencyStyle: .glass)
+        let saved = try JSONDecoder().decode(SpaceTheme.self, from: JSONEncoder().encode(opaque))
+        #expect(saved.transparency == 0)
+    }
+
     @Test func canvasPointRoundTripsHueAndSaturation() {
         for hue in stride(from: 0.0, to: 360, by: 37) {
             let p = SpaceTheme.Point(hue: hue, saturation: 0.7)

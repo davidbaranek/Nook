@@ -6,6 +6,7 @@ import Foundation
 /// Saved on `SpaceRecord.theme`; a space without one keeps its plain accent gradient.
 public struct SpaceTheme: Codable, Hashable, Sendable {
     public enum Mode: String, Codable, Sendable, CaseIterable { case auto, light, dark }
+    public enum TransparencyStyle: String, Codable, Sendable, CaseIterable { case blur, glass }
 
     /// A point on the canvas, 0...1 on each axis with the origin top left. The center is
     /// neutral; the angle around it is the hue and the distance from it the saturation.
@@ -52,6 +53,9 @@ public struct SpaceTheme: Codable, Hashable, Sendable {
     public var points: [Point] { didSet { if points != oldValue { sync() } } }
     public var mode: Mode
     public var intensity: Double
+    /// Nil preserves the old app-wide translucency preference until this theme is edited.
+    public var transparency: Double?
+    public var transparencyStyle: TransparencyStyle
     public var grain: Double
     public var wheel: Wheel { didSet { if wheel != oldValue { sync() } } }
     public var overlay: Overlay
@@ -67,12 +71,15 @@ public struct SpaceTheme: Codable, Hashable, Sendable {
 
     public init(
         points: [Point], mode: Mode = .auto, intensity: Double = 0.6, grain: Double = 0,
-        wheel: Wheel = .analogous, overlay: Overlay = .grain, colorCount: Int? = nil, tone: Double? = nil
+        wheel: Wheel = .analogous, overlay: Overlay = .grain, colorCount: Int? = nil, tone: Double? = nil,
+        transparency: Double? = nil, transparencyStyle: TransparencyStyle = .blur
     ) {
         let key = points.first ?? .center
         self.points = [key]
         self.mode = mode
         self.intensity = min(1, max(0, intensity))
+        self.transparency = transparency.map { min(1, max(0, $0)) }
+        self.transparencyStyle = transparencyStyle
         self.grain = min(1, max(0, grain))
         self.wheel = wheel
         self.overlay = overlay
@@ -145,7 +152,9 @@ public struct SpaceTheme: Codable, Hashable, Sendable {
             wheel: (try? c.decode(Wheel.self, forKey: .wheel)) ?? .analogous,
             overlay: (try? c.decode(Overlay.self, forKey: .overlay)) ?? .grain,
             colorCount: try? c.decode(Int.self, forKey: .colorCount),
-            tone: try? c.decode(Double.self, forKey: .tone))
+            tone: try? c.decode(Double.self, forKey: .tone),
+            transparency: try? c.decode(Double.self, forKey: .transparency),
+            transparencyStyle: (try? c.decode(TransparencyStyle.self, forKey: .transparencyStyle)) ?? .blur)
     }
 
     // MARK: - Resolving

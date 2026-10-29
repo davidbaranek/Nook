@@ -81,25 +81,6 @@ public extension View {
         #endif
     }
 
-    /// Only the background changes; the live pager and anchored address panel stay unclipped.
-    func nookSidebarSurface(floating: Bool = false) -> some View {
-        background {
-            Group {
-                if floating {
-                    sidebarMaterial
-                } else {
-                    #if os(macOS)
-                    NookVisualEffectMaterial(material: .sidebar, blendingMode: .behindWindow)
-                    #else
-                    Rectangle().fill(.regularMaterial)
-                    #endif
-                }
-            }
-            .allowsHitTesting(false)
-        }
-        .environment(\.nookHasGlassSurface, true)
-    }
-
     /// Controls over video: a dark scrim, whatever the page or appearance.
     func nookMediaControl<S: Shape>(in shape: S) -> some View {
         background(shape.fill(NookDesign.Surface.mediaScrim))
@@ -146,20 +127,6 @@ private struct NookVisualEffectMaterial: NSViewRepresentable {
     }
 }
 #endif
-
-@ViewBuilder
-private var sidebarMaterial: some View {
-    #if os(macOS)
-    if #available(macOS 26.0, *) {
-        Rectangle().fill(.clear)
-            .glassEffect(.regular, in: Rectangle())
-    } else {
-        Rectangle().fill(.regularMaterial)
-    }
-    #else
-    Rectangle().fill(.regularMaterial)
-    #endif
-}
 
 /// Native tab interaction; Reduce Motion keeps the pressed card at its original scale.
 public struct NookTabButtonStyle: ButtonStyle {

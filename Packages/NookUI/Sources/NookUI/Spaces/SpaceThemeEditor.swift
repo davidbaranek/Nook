@@ -39,6 +39,7 @@ public struct SpaceThemeEditor: View {
 /// space exists.
 public struct SpaceThemePanel: View {
     @Environment(\.colorScheme) private var systemScheme
+    @Environment(\.nookSettings) private var settings
     @Binding var theme: SpaceTheme
 
     private let width: CGFloat = 300
@@ -50,16 +51,52 @@ public struct SpaceThemePanel: View {
 
     private var isDark: Bool { theme.isDark(systemDark: systemScheme == .dark) }
 
+    private var transparency: Binding<Double> {
+        Binding {
+            theme.chromeTransparency(legacyEnabled: settings.themeTranslucency)
+        } set: {
+            theme.transparency = $0
+        }
+    }
+
+    private var intensity: Binding<Double> {
+        Binding {
+            theme.intensity
+        } set: {
+            if theme.transparency == nil {
+                theme.transparency = theme.chromeTransparency(legacyEnabled: settings.themeTranslucency)
+            }
+            theme.intensity = $0
+        }
+    }
+
     public var body: some View {
         VStack(spacing: NookDesign.Spacing.lg) {
             ThemeCanvas(theme: $theme, isDark: isDark)
                 .frame(height: canvasHeight)
             ThemeSwatches(theme: $theme)
             HStack(spacing: NookDesign.Spacing.lg) {
-                Slider(value: $theme.intensity) { Text("Intensity") }
+                Slider(value: intensity) { Text("Intensity") }
                     .labelsHidden()
                     .accessibilityLabel("Intensity")
                 NoiseKnob(theme: $theme)
+            }
+            VStack(spacing: NookDesign.Spacing.sm) {
+                HStack {
+                    Text("Transparency")
+                    Spacer()
+                    Text(transparency.wrappedValue, format: .percent.precision(.fractionLength(0)))
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                }
+                Slider(value: transparency, in: 0...1) { Text("Transparency") }
+                    .labelsHidden()
+                Picker("Transparency style", selection: $theme.transparencyStyle) {
+                    Text("Blur").tag(SpaceTheme.TransparencyStyle.blur)
+                    Text("Glass").tag(SpaceTheme.TransparencyStyle.glass)
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
             }
         }
         .padding(NookDesign.Spacing.lg)
