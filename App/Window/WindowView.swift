@@ -339,7 +339,7 @@ struct WindowView: View {
 
         ZStack(alignment: .top) {
             VStack(spacing: 0) {
-                if bordered {
+                if bordered && !hasTopBar {
                     WebsiteLoadingIndicator()
                         .zIndex(3000)
                 }
@@ -349,6 +349,12 @@ struct WindowView: View {
                     TopBarView()
                         .environmentObject(browserManager)
                         .environment(windowState)
+                        .overlay(alignment: .bottom) {
+                            if bordered {
+                                WebsiteLoadingIndicator()
+                                    .allowsHitTesting(false)
+                            }
+                        }
                         .zIndex(2500)
                 }
 
@@ -378,8 +384,8 @@ struct WindowView: View {
                         }
                     }
                 }
-                // The loading indicator sits in the window's top inset, outside the frame
-                // whose edges cast the shadow.
+                // With a toolbar, loading overlays the bar; sidebar URL mode keeps
+                // the indicator in the window's top inset.
                 .nookWebPageShadow(in: NookDesign.Radius.shape(cornerRadius), enabled: bordered)
             }
 

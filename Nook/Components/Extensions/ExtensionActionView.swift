@@ -17,12 +17,13 @@ import NookUI
 
 struct ExtensionActionView: View {
     let extensions: [InstalledExtension]
+    var usesToolbarStyle = false
     @EnvironmentObject var browserManager: BrowserManager
     
     var body: some View {
         HStack(spacing: 4) {
             ForEach(extensions.filter { $0.isEnabled }, id: \.id) { ext in
-                ExtensionActionButton(ext: ext)
+                ExtensionActionButton(ext: ext, usesToolbarStyle: usesToolbarStyle)
                     .environmentObject(browserManager)
             }
         }
@@ -31,6 +32,7 @@ struct ExtensionActionView: View {
 
 struct ExtensionActionButton: View {
     let ext: InstalledExtension
+    var usesToolbarStyle = false
     @EnvironmentObject var browserManager: BrowserManager
     @Environment(BrowserWindowState.self) private var windowState
     @State private var isHovering: Bool = false
@@ -42,6 +44,42 @@ struct ExtensionActionButton: View {
     }
 
     var body: some View {
+        Group {
+            if usesToolbarStyle {
+                actionButton.buttonStyle(NookToolbarIconButtonStyle())
+            } else {
+                actionButton.buttonStyle(.plain)
+            }
+        }
+        .help(ext.name)
+        .onHoverTracking { state in
+            isHovering = state
+        }
+        .onAppear { refreshBadge() }
+        .onReceive(NotificationCenter.default.publisher(for: .adBlockerStateChanged)) { _ in
+            refreshBadge()
+        }
+        // Wake workers when returning to Nook from another app. MV3 workers
+        // auto-terminate after ~5 min of inactivity; if the user was away, the
+        // worker may be dead and badge state cleared. Tab switches already wake
+        // workers via notifyTabActivated — this covers the app-reactivation case.
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            wakeAndRefreshBadge()
+        }
+        .onChange(of: currentSession?.url) { _, _ in
+            refreshBadge()
+        }
+        .onChange(of: currentSession?.loadingState) { _, newState in
+            if newState == .didFinish {
+                // Small delay to let extension background process the tab update
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    refreshBadge()
+                }
+            }
+        }
+    }
+
+    private var actionButton: some View {
         Button(action: {
             showExtensionPopup()
         }) {
@@ -72,37 +110,11 @@ struct ExtensionActionButton: View {
                         .offset(x: 6, y: -4)
                 }
             }
-            .frame(width: NookDesign.Size.iconButton, height: NookDesign.Size.iconButton)
-            .background(isHovering ? NookDesign.Surface.fillPressed : .clear)
+            .frame(width: usesToolbarStyle ? nil : NookDesign.Size.iconButton,
+                   height: usesToolbarStyle ? nil : NookDesign.Size.iconButton)
+            .background(isHovering && !usesToolbarStyle ? NookDesign.Surface.fillPressed : .clear)
             .background(ActionAnchorView(extensionId: ext.id))
             .clipShape(NookDesign.Radius.shape(NookDesign.Radius.sm))
-        }
-        .buttonStyle(.plain)
-        .help(ext.name)
-        .onHoverTracking { state in
-            isHovering = state
-        }
-        .onAppear { refreshBadge() }
-        .onReceive(NotificationCenter.default.publisher(for: .adBlockerStateChanged)) { _ in
-            refreshBadge()
-        }
-        // Wake workers when returning to Nook from another app. MV3 workers
-        // auto-terminate after ~5 min of inactivity; if the user was away, the
-        // worker may be dead and badge state cleared. Tab switches already wake
-        // workers via notifyTabActivated — this covers the app-reactivation case.
-        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
-            wakeAndRefreshBadge()
-        }
-        .onChange(of: currentSession?.url) { _, _ in
-            refreshBadge()
-        }
-        .onChange(of: currentSession?.loadingState) { _, newState in
-            if newState == .didFinish {
-                // Small delay to let extension background process the tab update
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    refreshBadge()
-                }
-            }
         }
     }
 

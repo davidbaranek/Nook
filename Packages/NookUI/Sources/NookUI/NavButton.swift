@@ -45,6 +45,32 @@ public struct NookIconButtonStyle: PrimitiveButtonStyle {
 
 }
 
+/// A roomy label inside the system's circular bezel; no outer frame clips the glass.
+public struct NookToolbarIconButtonStyle: PrimitiveButtonStyle {
+    public init() {}
+
+    @ViewBuilder
+    public func makeBody(configuration: Configuration) -> some View {
+        if #available(macOS 26.0, *) {
+            button(configuration).buttonStyle(.glass)
+        } else {
+            button(configuration).buttonStyle(.bordered)
+        }
+    }
+
+    private func button(_ configuration: Configuration) -> some View {
+        Button(role: configuration.role, action: configuration.trigger) {
+            configuration.label
+                .font(.system(size: NookDesign.Toolbar.icon))
+                .frame(width: NookDesign.Toolbar.icon, height: NookDesign.Toolbar.icon)
+                .padding(NookDesign.Toolbar.buttonPadding)
+        }
+        .labelStyle(.iconOnly)
+        .buttonBorderShape(.circle)
+        .controlSize(.large)
+    }
+}
+
 public extension View {
     func nookSidebarIconButtons() -> some View {
         labelStyle(.iconOnly)

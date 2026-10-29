@@ -15,25 +15,13 @@ struct TopBarView: View {
 
     var body: some View {
         GeometryReader { geometry in
-            let compact = geometry.size.width < NookDesign.Toolbar.compactBelow
-            HStack(spacing: NookDesign.Spacing.md) {
-                if !windowState.isSidebarVisible {
-                    Button("Toggle Sidebar", systemImage: "sidebar.left") {
-                        browserManager.toggleSidebar(for: windowState)
-                    }
-                    .nookIconButtons()
-                    .help("Toggle Sidebar")
+            if #available(macOS 26.0, *) {
+                GlassEffectContainer(spacing: 0) {
+                    controls(width: geometry.size.width)
                 }
-                if !compact { navigationControls }
-                Spacer(minLength: 0)
-                addressBar
-                    .frame(maxWidth: NookDesign.Toolbar.addressMaxWidth)
-                    .layoutPriority(1)
-                Spacer(minLength: 0)
-                trailingControls(compact: compact)
+            } else {
+                controls(width: geometry.size.width)
             }
-            .padding(.horizontal, NookDesign.Spacing.lg)
-            .frame(width: geometry.size.width, height: NookDesign.Toolbar.height)
         }
         .frame(height: NookDesign.Toolbar.height)
         .background(.bar)
@@ -50,23 +38,68 @@ struct TopBarView: View {
         }
     }
 
+    private func controls(width: CGFloat) -> some View {
+        let compact = width < NookDesign.Toolbar.compactBelow
+        return HStack(spacing: NookDesign.Spacing.md) {
+            if !windowState.isSidebarVisible {
+                Button("Toggle Sidebar", systemImage: "sidebar.left") {
+                    browserManager.toggleSidebar(for: windowState)
+                }
+                .help("Toggle Sidebar")
+            }
+            if !compact { navigationControls }
+            Spacer(minLength: 0)
+            addressBar
+                .buttonBorderShape(.automatic)
+                .controlSize(.regular)
+                .frame(maxWidth: NookDesign.Toolbar.addressMaxWidth)
+                .layoutPriority(1)
+            Spacer(minLength: 0)
+            trailingControls(compact: compact)
+        }
+        .padding(.horizontal, NookDesign.Spacing.lg)
+        .frame(width: width, height: NookDesign.Toolbar.height)
+        .buttonStyle(NookToolbarIconButtonStyle())
+        .labelStyle(.iconOnly)
+    }
+
+    @ViewBuilder
     private var navigationControls: some View {
-        ControlGroup {
-            Button("Go Back", systemImage: "chevron.backward", action: goBack)
+        if #available(macOS 26.0, *) {
+            navigationGroup.glassEffect(.regular, in: .capsule)
+        } else {
+            navigationGroup.background(.bar, in: Capsule())
+        }
+    }
+
+    private var navigationGroup: some View {
+        HStack(spacing: NookDesign.Spacing.sm) {
+            Button(action: goBack) {
+                Label("Go Back", systemImage: "chevron.backward")
+                    .frame(width: NookDesign.Toolbar.icon, height: NookDesign.Toolbar.icon)
+                    .padding(NookDesign.Toolbar.buttonPadding)
+            }
                 .disabled(!(session?.canGoBackOrReturn ?? false))
                 .help("Go Back")
                 .contextMenu {
                     NavigationHistoryContextMenu(historyType: .back, windowState: windowState)
                 }
-            Button("Go Forward", systemImage: "chevron.forward", action: goForward)
+            Divider().frame(height: NookDesign.Toolbar.icon)
+            Button(action: goForward) {
+                Label("Go Forward", systemImage: "chevron.forward")
+                    .frame(width: NookDesign.Toolbar.icon, height: NookDesign.Toolbar.icon)
+                    .padding(NookDesign.Toolbar.buttonPadding)
+            }
                 .disabled(!(session?.canGoForward ?? false))
                 .help("Go Forward")
                 .contextMenu {
                     NavigationHistoryContextMenu(historyType: .forward, windowState: windowState)
                 }
         }
-        .controlGroupStyle(.navigation)
+        .buttonStyle(.borderless)
         .labelStyle(.iconOnly)
+        .font(.system(size: NookDesign.Toolbar.icon))
+        .padding(NookDesign.Spacing.sm)
     }
 
     private var addressBar: some View {
@@ -124,10 +157,10 @@ struct TopBarView: View {
             if let manager = browserManager.extensionManager {
                 if !compact {
                     let pinned = browserManager.nookSettings?.pinnedExtensionIDs ?? []
-                    ExtensionActionView(extensions: manager.installedExtensions.filter { pinned.contains($0.id) })
+                    ExtensionActionView(extensions: manager.installedExtensions.filter { pinned.contains($0.id) }, usesToolbarStyle: true)
                         .environmentObject(browserManager)
                 }
-                ExtensionLibraryButton()
+                ExtensionLibraryButton(usesToolbarStyle: true)
                     .help("Site Controls")
                     .onAppear {
                         browserManager.nookSettings?.migrateExtensionPinStateIfNeeded(
@@ -138,7 +171,6 @@ struct TopBarView: View {
                 Button("Chat", systemImage: "bubble.left") {
                     browserManager.toggleAISidebar(for: windowState)
                 }
-                .nookIconButtons()
                 .help("Chat")
             }
         }

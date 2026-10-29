@@ -13,6 +13,7 @@ struct ExtensionLibraryButton: View {
     @EnvironmentObject var browserManager: BrowserManager
     @Environment(BrowserWindowState.self) private var windowState
 
+    var usesToolbarStyle = false
     @State private var showsMore = false
 
     private var presented: Binding<Bool> {
@@ -24,9 +25,19 @@ struct ExtensionLibraryButton: View {
         }
     }
 
+    @ViewBuilder
+    private var control: some View {
+        if usesToolbarStyle {
+            Button("Site Controls", systemImage: "slider.horizontal.3") { presented.wrappedValue.toggle() }
+                .buttonStyle(NookToolbarIconButtonStyle())
+        } else {
+            Button("Site Controls", systemImage: "slider.horizontal.3") { presented.wrappedValue.toggle() }
+                .buttonStyle(NookIconButtonStyle())
+        }
+    }
+
     var body: some View {
-        Button("Site Controls", systemImage: "slider.horizontal.3") { presented.wrappedValue.toggle() }
-        .buttonStyle(NookIconButtonStyle())
+        control
         .labelStyle(.iconOnly)
         .popover(isPresented: presented, attachmentAnchor: .rect(.bounds), arrowEdge: .bottom) {
             if let settings = browserManager.nookSettings {
@@ -51,6 +62,8 @@ struct ExtensionLibraryButton: View {
                 // As with the theme picker, macOS supplies the entire presentation:
                 // background, arrow, rim, shadow, placement and transient dismissal.
                 .environment(\.nookHasGlassSurface, true)
+                .buttonBorderShape(.automatic)
+                .controlSize(.regular)
                 .onExitCommand { presented.wrappedValue = false }
             }
         }
