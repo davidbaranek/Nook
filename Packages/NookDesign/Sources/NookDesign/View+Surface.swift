@@ -7,13 +7,16 @@
 //
 
 import SwiftUI
+#if os(macOS)
+import AppKit
+#endif
 
 private struct DefaultSpaceThemeKey: EnvironmentKey {
     static let defaultValue = false
 }
 
 public extension EnvironmentValues {
-    /// Controls inside a glass surface use borderless system styles, avoiding glass on glass.
+    /// Controls inside a material-backed surface avoid an additional glass layer.
     @Entry var nookHasGlassSurface = false
     /// True while the chrome shows a space with no custom theme.
     var nookUsesDefaultSpaceTheme: Bool {
@@ -43,19 +46,21 @@ public extension View {
         }
     }
 
-    /// Transient panels use regular glass for readable text over arbitrary web content.
+    /// Text-heavy transient panels use the semantic popover material. Unlike a generic
+    /// glass effect for a control, this surface suppresses distracting background detail.
     @ViewBuilder
     func nookFloatingSurface<S: InsettableShape>(in shape: S) -> some View {
         #if os(macOS)
-        if #available(macOS 26.0, *) {
-            self.glassEffect(.regular, in: shape)
-                .environment(\.nookHasGlassSurface, true)
-        } else {
-            self.clipShape(shape)
-                .background(.regularMaterial, in: shape)
-                .nookElevation(.floating)
-                .environment(\.nookHasGlassSurface, true)
-        }
+        self.clipShape(shape)
+            .background {
+                NookPopoverMaterial()
+                    .clipShape(shape)
+                    .allowsHitTesting(false)
+            }
+            .overlay(shape.strokeBorder(NookDesign.Surface.hairline, lineWidth: NookDesign.Size.hairlineWidth)
+                .allowsHitTesting(false))
+            .nookElevation(.floating)
+            .environment(\.nookHasGlassSurface, true)
         #else
         self.clipShape(shape)
             .background(shape.fill(NookDesign.Surface.raised))
@@ -93,6 +98,31 @@ public extension View {
         background(shape.fill(isOn ? (tint?.opacity(NookDesign.Surface.tintOpacity) ?? NookDesign.Surface.fill) : .clear))
     }
 }
+
+#if os(macOS)
+/// These panels live inside the browser window, so sample its content rather than the
+/// desktop. AppKit owns material density, vibrancy and Reduce Transparency behavior.
+private struct NookPopoverMaterial: NSViewRepresentable {
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.colorSchemeContrast) private var contrast
+
+    func makeNSView(context: Context) -> NSVisualEffectView {
+        let view = NSVisualEffectView()
+        view.material = .popover
+        view.blendingMode = .withinWindow
+        view.state = .followsWindowActiveState
+        return view
+    }
+
+    func updateNSView(_ view: NSVisualEffectView, context: Context) {
+        let dark = colorScheme == .dark
+        let name: NSAppearance.Name = contrast == .increased
+            ? (dark ? .accessibilityHighContrastDarkAqua : .accessibilityHighContrastAqua)
+            : (dark ? .darkAqua : .aqua)
+        view.appearance = NSAppearance(named: name)
+    }
+}
+#endif
 
 @ViewBuilder
 private var sidebarMaterial: some View {
