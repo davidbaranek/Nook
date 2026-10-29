@@ -72,9 +72,9 @@ public enum NookDesign {
 
     public enum Toolbar {
         public static let height: CGFloat = 52
-        public static let icon: CGFloat = 18
-        public static let buttonPadding: CGFloat = 4
-        public static let addressHeight: CGFloat = 30
+        public static let icon: CGFloat = 16
+        public static let buttonPadding: CGFloat = 3
+        public static let addressHeight: CGFloat = 34
         public static let addressMaxWidth: CGFloat = 560
         public static let compactBelow: CGFloat = 420
     }

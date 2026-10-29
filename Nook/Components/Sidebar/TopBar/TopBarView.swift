@@ -102,7 +102,19 @@ struct TopBarView: View {
         .padding(NookDesign.Spacing.sm)
     }
 
+    @ViewBuilder
     private var addressBar: some View {
+        if #available(macOS 26.0, *) {
+            addressControls.glassEffect(.regular, in: .capsule)
+        } else {
+            addressControls
+                .background(Color(nsColor: .controlBackgroundColor), in: Capsule())
+                .overlay(Capsule().strokeBorder(.separator, lineWidth: NookDesign.Size.hairlineWidth)
+                    .allowsHitTesting(false))
+        }
+    }
+
+    private var addressControls: some View {
         HStack(spacing: NookDesign.Spacing.sm) {
             Button {
                 if let current = browserManager.tabs.selectedSession(in: windowState) {
@@ -145,9 +157,7 @@ struct TopBarView: View {
         .padding(.leading, NookDesign.Spacing.lg)
         .padding(.trailing, NookDesign.Spacing.xs)
         .frame(height: NookDesign.Toolbar.addressHeight)
-        .background(Color(nsColor: .controlBackgroundColor), in: Capsule())
-        .overlay(Capsule().strokeBorder(.separator, lineWidth: NookDesign.Size.hairlineWidth)
-            .allowsHitTesting(false))
+        .environment(\.nookHasGlassSurface, true)
         .onHoverTracking { isHovering = $0 }
     }
 
