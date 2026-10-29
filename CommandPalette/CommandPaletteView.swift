@@ -298,7 +298,7 @@ struct CommandPaletteView: View {
                         .padding(10)
                         .frame(maxWidth: .infinity)
                         .frame(width: effectiveCommandPaletteWidth)
-                        .nookFloatingSurface(in: NookDesign.Radius.shape(NookDesign.Radius.xxl))
+                        .nookSearchSurface(in: NookDesign.Radius.shape(NookDesign.Radius.xxl))
                         .animation(
                             NookDesign.Motion.quick,
                             value: searchManager.suggestions.count

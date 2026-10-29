@@ -27,6 +27,17 @@ public extension EnvironmentValues {
 }
 
 public extension View {
+    /// Search suggestions float above content on one adaptive glass surface.
+    @ViewBuilder
+    func nookSearchSurface<S: InsettableShape>(in shape: S) -> some View {
+        if #available(macOS 26.0, iOS 26.0, *) {
+            self.glassEffect(.regular, in: shape)
+                .environment(\.nookHasGlassSurface, true)
+        } else {
+            self.nookFloatingSurface(in: shape)
+        }
+    }
+
     /// A soft page-frame shadow, drawn separately from live WebKit content.
     /// Removing the silhouette's fill keeps split gutters transparent to the window theme.
     func nookWebPageShadow<S: Shape>(in shape: S, enabled: Bool = true) -> some View {
